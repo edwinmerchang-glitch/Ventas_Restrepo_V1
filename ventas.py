@@ -369,27 +369,36 @@ def page_empleados():
         </div>
         """, unsafe_allow_html=True)
         
-        with st.form("employee_form", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            with col1:
-                name = st.text_input("Nombre completo", placeholder="Ej: Juan Pérez")
-                position = st.selectbox("Cargo", CARGOS)
-            with col2:
-                department = st.selectbox("Departamento", DEPARTAMENTOS)
-                goal = st.number_input("Meta mensual", value=300, min_value=1, step=50)
+        # Verificar usuarios disponibles (FUERA del formulario)
+        df_users = safe_dataframe("""
+            SELECT u.id, u.username 
+            FROM users u 
+            WHERE u.role = 'empleado' 
+            AND u.id NOT IN (
+                SELECT user_id FROM employees WHERE user_id IS NOT NULL
+            )
+            ORDER BY u.username
+        """)
+        
+        # Si no hay usuarios, mostrar mensaje y botón FUERA del formulario
+        if df_users.empty:
+            st.warning("⚠️ No hay usuarios disponibles. Ve a 'Usuarios' → 'Crear usuario' primero.")
             
-            # Usuarios disponibles (solo empleados que no tienen perfil aún)
-            df_users = safe_dataframe("""
-                SELECT u.id, u.username 
-                FROM users u 
-                WHERE u.role = 'empleado' 
-                AND u.id NOT IN (
-                    SELECT user_id FROM employees WHERE user_id IS NOT NULL
-                )
-                ORDER BY u.username
-            """)
-            
-            if not df_users.empty:
+            # Botón fuera del formulario
+            if st.button("➕ Ir a crear usuarios", key="go_to_users"):
+                st.session_state.page = "Usuarios"
+                st.rerun()
+        else:
+            # Mostrar el formulario solo si hay usuarios disponibles
+            with st.form("employee_form", clear_on_submit=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    name = st.text_input("Nombre completo", placeholder="Ej: Juan Pérez")
+                    position = st.selectbox("Cargo", CARGOS)
+                with col2:
+                    department = st.selectbox("Departamento", DEPARTAMENTOS)
+                    goal = st.number_input("Meta mensual", value=300, min_value=1, step=50)
+                
                 user_options = {row['username']: row['id'] for _, row in df_users.iterrows()}
                 selected_user = st.selectbox(
                     "Seleccionar usuario", 
@@ -398,41 +407,35 @@ def page_empleados():
                 )
                 user_id = user_options[selected_user]
                 
-                # Mostrar información del usuario seleccionado
                 st.info(f"📌 Se asignará el perfil de empleado al usuario: **{selected_user}**")
-            else:
-                st.warning("⚠️ No hay usuarios disponibles. Ve a 'Usuarios' → 'Crear usuario' primero.")
-                if st.button("➕ Ir a crear usuarios"):
-                    st.session_state.page = "Usuarios"
-                    st.rerun()
-                user_id = None
-            
-            submitted = st.form_submit_button("Registrar empleado", type="primary", use_container_width=True)
-            
-            if submitted and name and user_id:
-                # Verificar que el usuario sigue disponible
-                check_query = "SELECT id FROM users WHERE id = ? AND role = 'empleado' AND id NOT IN (SELECT user_id FROM employees)"
-                check_result = execute_query(check_query, (user_id,))
                 
-                if check_result and check_result.fetchone():
-                    insert_query = """
-                        INSERT INTO employees (name, position, department, goal, user_id) 
-                        VALUES (?,?,?,?,?)
-                    """
-                    success = execute_query(
-                        insert_query, 
-                        (name, position, department, goal, user_id),
-                        commit=True
-                    )
+                # Submit button DENTRO del formulario
+                submitted = st.form_submit_button("Registrar empleado", type="primary", use_container_width=True)
+                
+                if submitted and name:
+                    # Verificar que el usuario sigue disponible
+                    check_query = "SELECT id FROM users WHERE id = ? AND role = 'empleado' AND id NOT IN (SELECT user_id FROM employees)"
+                    check_result = execute_query(check_query, (user_id,))
                     
-                    if success:
-                        st.success(f"✅ Empleado '{name}' registrado exitosamente y asociado al usuario '{selected_user}'")
-                        st.balloons()
-                        st.cache_data.clear()
-                        time.sleep(1)
-                        st.rerun()
-                else:
-                    st.error("❌ El usuario seleccionado ya no está disponible. Por favor, selecciona otro.")
+                    if check_result and check_result.fetchone():
+                        insert_query = """
+                            INSERT INTO employees (name, position, department, goal, user_id) 
+                            VALUES (?,?,?,?,?)
+                        """
+                        success = execute_query(
+                            insert_query, 
+                            (name, position, department, goal, user_id),
+                            commit=True
+                        )
+                        
+                        if success:
+                            st.success(f"✅ Empleado '{name}' registrado exitosamente y asociado al usuario '{selected_user}'")
+                            st.balloons()
+                            st.cache_data.clear()
+                            time.sleep(1)
+                            st.rerun()
+                    else:
+                        st.error("❌ El usuario seleccionado ya no está disponible. Por favor, selecciona otro.")
     
     with tab2:
         df_emp = safe_dataframe("""
@@ -452,9 +455,7 @@ def page_empleados():
         """)
         
         if not df_emp.empty:
-            # Renombrar columna para claridad
             df_emp = df_emp.rename(columns={'ventas': 'ventas_realizadas'})
-            
             st.dataframe(df_emp, use_container_width=True, hide_index=True)
             
             # Resumen por departamento
@@ -469,7 +470,6 @@ def page_empleados():
                 st.dataframe(depto_resumen, use_container_width=True, hide_index=True)
             
             with col2:
-                # Gráfico de distribución
                 fig = px.pie(depto_resumen, values='Empleados', names='department',
                            title="Distribución de empleados por departamento")
                 st.plotly_chart(fig, use_container_width=True)
