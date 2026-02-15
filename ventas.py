@@ -9,9 +9,9 @@ import time
 
 # Configuración de página
 st.set_page_config(
-    "AIS Ventas PRO", 
+    "Ventas Equipo Locatel Restrepo", 
     layout="wide", 
-    page_icon="📊",
+    page_icon="",
     initial_sidebar_state="expanded"
 )
 
@@ -164,7 +164,7 @@ def get_badge_class(position):
 # ---------------- LOGIN ---------------- #
 def show_login():
     """Mostrar pantalla de login"""
-    st.title("📊 AIS - Sistema Profesional de Ventas")
+    st.title("Ventas Equipo Locatel Restrepo")
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -203,7 +203,7 @@ def show_menu():
     with st.sidebar:
         st.markdown("""
         <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #4f7cff; font-size: 32px; margin: 0;">AIS</h1>
+            <h1 style="color: #4f7cff; font-size: 32px; margin: 0;">LOCATEL RESTREPO</h1>
             <p style="color: #666; font-size: 14px;">Sistema de Ventas</p>
         </div>
         """, unsafe_allow_html=True)
