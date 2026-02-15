@@ -258,7 +258,7 @@ def show_menu():
             st.cache_data.clear()
             st.rerun()
         
-        st.divider()
+        #st.divider()
         #st.caption(f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
 # ============= NUEVA PÁGINA DE EMPLEADOS (primero empleado) =============
