@@ -164,7 +164,15 @@ def get_badge_class(position):
 # ---------------- LOGIN ---------------- #
 def show_login():
     """Mostrar pantalla de login"""
-    st.title("Ventas Equipo Locatel Restrepo")
+    
+    st.markdown("""
+    <div style="text-align: center; margin: 30px 0 40px 0;">
+        <h1 style="color: #4f7cff; font-size: 42px; margin-bottom: 5px;">
+            🏥 Ventas Equipo Locatel Restrepo
+        </h1>
+        <p style="color: #666; font-size: 16px;">Sistema de Gestión de Ventas</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -176,6 +184,7 @@ def show_login():
             p = st.text_input("Contraseña", type="password", placeholder="********")
             
             if st.button("Ingresar", use_container_width=True, type="primary"):
+                # ... lógica de autenticación ...
                 if u and p:
                     user = authenticate(u, p)
                     if user:
