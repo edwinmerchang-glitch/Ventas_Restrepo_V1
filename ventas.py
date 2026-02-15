@@ -132,28 +132,6 @@ def execute_insert(query, params=None):
         if conn:
             conn.close()
 
-def execute_insert(query, params=None):
-    """Ejecutar query INSERT/UPDATE/DELETE con commit"""
-    conn = None
-    try:
-        conn = get_connection()
-        cur = conn.cursor()
-        if params:
-            cur.execute(query, params)
-        else:
-            cur.execute(query)
-        conn.commit()
-        st.cache_data.clear()
-        return True
-    except Exception as e:
-        st.error(f"Error al guardar: {e}")
-        if conn:
-            conn.rollback()
-        return False
-    finally:
-        if conn:
-            conn.close()
-
 def get_employee_info(user_id):
     """Obtener información del empleado por user_id"""
     try:
