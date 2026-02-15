@@ -39,7 +39,7 @@ def create_default_admin():
 # Crear admin por defecto
 create_default_admin()
 
-# ============= NUEVAS LISTAS PERSONALIZADAS =============
+# ============= LISTAS PERSONALIZADAS =============
 # Cargos específicos para tu empresa
 CARGOS = [
     "Ais Droguería",
@@ -56,13 +56,7 @@ DEPARTAMENTOS = [
     "Cajas"
 ]
 
-# Diccionario para mapear cargos con departamentos (opcional, para lógica de negocio)
-CARGO_DEPARTAMENTO_MAP = {
-    "Ais Droguería": "Droguería",
-    "Ais Equipos Médicos": "Equipos Médicos",
-    "Ais Pasillos": "Pasillos",
-    "Ais Cajas": "Cajas"
-}
+# NOTA: Ya no usamos el mapa automático, ahora será selección manual
 
 def load_css():
     """Cargar estilos CSS"""
@@ -501,9 +495,8 @@ def page_empleados():
                 name = st.text_input("Nombre completo", placeholder="Ej: Juan Pérez")
                 position = st.selectbox("Cargo", CARGOS)
             with col2:
-                # Auto-seleccionar departamento basado en el cargo
-                department = CARGO_DEPARTAMENTO_MAP[position]
-                st.info(f"📌 Departamento asignado automáticamente: **{department}**")
+                # ===== CAMBIO IMPORTANTE: Ahora es selección manual =====
+                department = st.selectbox("Departamento", DEPARTAMENTOS)
                 goal = st.number_input("Meta mensual", value=300, min_value=1, step=50)
             
             # Selector de usuario
@@ -839,9 +832,8 @@ def page_mi_perfil():
         with st.form("perfil_form"):
             name = st.text_input("Nombre completo", placeholder="Ej: Juan Pérez")
             position = st.selectbox("Cargo", CARGOS)
-            # Auto-asignar departamento basado en cargo
-            department = CARGO_DEPARTAMENTO_MAP[position]
-            st.info(f"📌 Departamento asignado automáticamente: **{department}**")
+            # ===== CAMBIO IMPORTANTE: Ahora es selección manual =====
+            department = st.selectbox("Departamento", DEPARTAMENTOS)
             goal = st.number_input("Meta mensual", value=300, min_value=1, step=50)
             
             submitted = st.form_submit_button("Guardar perfil", type="primary", use_container_width=True)
@@ -881,8 +873,9 @@ def page_mi_perfil():
             with st.form("editar_perfil"):
                 new_position = st.selectbox("Cargo", CARGOS, 
                                           index=CARGOS.index(emp_info[2]) if emp_info[2] in CARGOS else 0)
-                new_department = CARGO_DEPARTAMENTO_MAP[new_position]
-                st.info(f"📌 Departamento: **{new_department}**")
+                # ===== CAMBIO IMPORTANTE: Ahora es selección manual =====
+                new_department = st.selectbox("Departamento", DEPARTAMENTOS,
+                                            index=DEPARTAMENTOS.index(emp_info[3]) if emp_info[3] in DEPARTAMENTOS else 0)
                 new_goal = st.number_input("Meta mensual", value=emp_info[4], min_value=1, step=50)
                 
                 if st.form_submit_button("Actualizar perfil", type="primary"):
