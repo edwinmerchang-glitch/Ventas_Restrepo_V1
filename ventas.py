@@ -65,23 +65,7 @@ def load_css():
         with open("styles.css") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
-        st.markdown("""
-        <style>
-        .main { background: linear-gradient(120deg,#f4f6ff,#eef2ff); }
-        .card { background: white; padding: 20px; border-radius: 18px; 
-                box-shadow: 0px 4px 15px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        .metric { font-size: 28px; font-weight: 700; color: #3b5bfd; }
-        .stButton > button { width: 100%; border-radius: 10px; 
-                            background: linear-gradient(90deg,#4f7cff,#7aa2ff); 
-                            color: white; font-weight: 600; border: none; }
-        .stButton > button:hover { background: linear-gradient(90deg,#3b5bfd,#6b8aff); }
-        .badge-cargo-drogueria { background: #e3f2fd; color: #1976d2; }
-        .badge-cargo-equipos { background: #e8f5e8; color: #2e7d32; }
-        .badge-cargo-pasillos { background: #fff3e0; color: #f57c00; }
-        .badge-cargo-cajas { background: #fce4ec; color: #c2185b; }
-        .badge-depto { background: #f3e5f5; color: #7b1fa2; }
-        </style>
-        """, unsafe_allow_html=True)
+        pass
 
 load_css()
 
@@ -90,8 +74,6 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "page" not in st.session_state:
     st.session_state.page = "Dashboard" if st.session_state.user else "Login"
-if "data_loaded" not in st.session_state:
-    st.session_state.data_loaded = False
 
 # ---------------- FUNCIONES DE UTILIDAD ---------------- #
 @st.cache_data(ttl=60)
@@ -105,37 +87,46 @@ def safe_dataframe(query, params=None):
             df = pd.read_sql(query, conn)
         conn.close()
         return df
-    except sqlite3.Error as e:
+    except Exception as e:
         st.error(f"Error en base de datos: {e}")
         return pd.DataFrame()
-    except Exception as e:
-        st.error(f"Error inesperado: {e}")
-        return pd.DataFrame()
 
-def execute_query(query, params=None, commit=False):
-    """Ejecutar query y hacer commit si es necesario"""
+def execute_query(query, params=None):
+    """Ejecutar query SELECT y retornar resultados"""
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor()
-        
         if params:
             cur.execute(query, params)
         else:
             cur.execute(query)
-        
-        if commit:
-            conn.commit()
-            st.cache_data.clear()
-            return True
-        else:
-            return cur
-            
+        return cur.fetchall()
     except Exception as e:
-        st.error(f"Error en base de datos: {e}")
+        st.error(f"Error en consulta: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+def execute_insert(query, params=None):
+    """Ejecutar query INSERT/UPDATE/DELETE con commit"""
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
+        conn.commit()
+        st.cache_data.clear()
+        return True
+    except Exception as e:
+        st.error(f"Error al guardar: {e}")
         if conn:
             conn.rollback()
-        return None
+        return False
     finally:
         if conn:
             conn.close()
@@ -154,7 +145,6 @@ def get_employee_info(user_id):
         conn.close()
         return emp
     except Exception as e:
-        st.error(f"Error al obtener información del empleado: {e}")
         return None
 
 def get_badge_class(position):
@@ -184,43 +174,27 @@ def show_login():
             u = st.text_input("Usuario", placeholder="Ingresa tu usuario")
             p = st.text_input("Contraseña", type="password", placeholder="********")
             
-            col_btn1, col_btn2 = st.columns(2)
-            with col_btn1:
-                if st.button("Ingresar", use_container_width=True, type="primary"):
-                    if u and p:
-                        user = authenticate(u, p)
-                        if user:
-                            st.session_state.user = user
-                            st.session_state.data_loaded = False
-                            
-                            if user["role"] == "admin":
-                                st.session_state.page = "Dashboard"
-                            else:
-                                emp_info = get_employee_info(user["id"])
-                                if emp_info and emp_info[2] and emp_info[3]:
-                                    st.session_state.page = "Registrar ventas"
-                                else:
-                                    st.warning("⚠️ Completa tu perfil de empleado antes de continuar")
-                                    st.session_state.page = "Mi perfil"
-                            st.rerun()
+            if st.button("Ingresar", use_container_width=True, type="primary"):
+                if u and p:
+                    user = authenticate(u, p)
+                    if user:
+                        st.session_state.user = user
+                        if user["role"] == "admin":
+                            st.session_state.page = "Dashboard"
                         else:
-                            st.error("❌ Credenciales incorrectas")
+                            emp_info = get_employee_info(user["id"])
+                            if emp_info:
+                                st.session_state.page = "Registrar ventas"
+                            else:
+                                st.warning("⚠️ Completa tu perfil de empleado antes de continuar")
+                                st.session_state.page = "Mi perfil"
+                        st.rerun()
                     else:
-                        st.warning("⚠️ Completa todos los campos")
-            
-            with col_btn2:
-                if st.button("Limpiar", use_container_width=True):
-                    st.rerun()
+                        st.error("❌ Credenciales incorrectas")
+                else:
+                    st.warning("⚠️ Completa todos los campos")
             
             st.markdown('</div>', unsafe_allow_html=True)
-            
-            with st.expander("ℹ️ Información del sistema"):
-                st.write(f"📁 Base de datos: `{DB_PATH}`")
-                if st.button("Verificar conexión"):
-                    if verify_database():
-                        st.success("✅ Conexión OK")
-                    else:
-                        st.error("❌ Problemas de conexión")
 
 # ---------------- MENÚ ---------------- #
 def show_menu():
@@ -254,8 +228,8 @@ def show_menu():
             menu_options = {
                 "📊 Dashboard": "Dashboard",
                 "🏆 Ranking": "Ranking",
-                "👥 Usuarios": "Usuarios",  # Usuarios primero
-                "🧑‍💼 Empleados": "Empleados",  # Empleados después
+                "🧑‍💼 Empleados": "Empleados",
+                "👥 Usuarios": "Usuarios",
                 "📊 Reportes": "Reportes"
             }
         else:
@@ -279,58 +253,200 @@ def show_menu():
         st.divider()
         
         if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):
-            for key in ["user", "page", "data_loaded"]:
-                if key in st.session_state:
-                    del st.session_state[key]
+            st.session_state.clear()
             st.cache_data.clear()
             st.rerun()
         
         st.divider()
         st.caption(f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-        st.caption(f"💾 BD: {DB_PATH.name}")
 
-# ============= PÁGINA DE USUARIOS (creación manual) =============
-def page_usuarios():
-    st.title("👤 Gestión de Usuarios AIS")
+# ============= NUEVA PÁGINA DE EMPLEADOS (primero empleado) =============
+def page_empleados():
+    st.title("🧑‍💼 Gestión de Empleados AIS")
     
-    tab1, tab2 = st.tabs(["➕ Crear usuario", "📋 Lista de usuarios"])
+    tab1, tab2, tab3 = st.tabs(["➕ Registrar empleado", "👤 Asignar usuario", "📋 Lista de empleados"])
     
     with tab1:
         st.markdown("""
         <div class="card" style="background: #e8f4fd;">
-            <h4>📌 Crear usuario manualmente</h4>
-            <p>Crea un usuario primero, luego podrás asociarlo a un empleado.</p>
+            <h4>📌 Paso 1: Registrar empleado</h4>
+            <p>Primero registra los datos del empleado. Luego podrás asignarle un usuario.</p>
         </div>
         """, unsafe_allow_html=True)
         
-        with st.form("user_form", clear_on_submit=True):
+        with st.form("registrar_empleado_form"):
             col1, col2 = st.columns(2)
             with col1:
-                u = st.text_input("Usuario", placeholder="ej: juan.perez")
+                name = st.text_input("Nombre completo*", placeholder="Ej: Juan Pérez")
+                position = st.selectbox("Cargo*", CARGOS)
             with col2:
-                p = st.text_input("Contraseña", type="password", placeholder="Mínimo 6 caracteres")
+                department = st.selectbox("Departamento*", DEPARTAMENTOS)
+                goal = st.number_input("Meta mensual", value=300, min_value=1, step=50)
             
-            r = st.selectbox("Rol", ["empleado", "admin"])
-            
-            submitted = st.form_submit_button("Crear usuario", type="primary", use_container_width=True)
+            submitted = st.form_submit_button("Registrar empleado", type="primary", use_container_width=True)
             
             if submitted:
-                if u and p and len(p) >= 6:
-                    try:
-                        create_user(u, p, r)
-                        st.success(f"✅ Usuario '{u}' creado exitosamente")
-                        st.balloons()
-                        st.cache_data.clear()
-                        time.sleep(1)
-                        st.rerun()
-                    except ValueError as e:
-                        st.error(f"❌ {e}")
-                    except Exception as e:
-                        st.error(f"❌ Error al crear usuario: {e}")
+                if name and position and department:
+                    # Verificar si ya existe un empleado con ese nombre
+                    check_query = "SELECT id FROM employees WHERE name = ?"
+                    existing = execute_query(check_query, (name,))
+                    
+                    if existing:
+                        st.warning(f"⚠️ Ya existe un empleado con el nombre '{name}'")
+                    else:
+                        insert_query = """
+                            INSERT INTO employees (name, position, department, goal, user_id) 
+                            VALUES (?,?,?,?, NULL)
+                        """
+                        success = execute_insert(insert_query, (name, position, department, goal))
+                        
+                        if success:
+                            st.success(f"✅ Empleado '{name}' registrado exitosamente!")
+                            st.info("👉 Ahora ve a la pestaña 'Asignar usuario' para crear su usuario.")
+                            st.balloons()
+                            st.cache_data.clear()
+                            time.sleep(1)
+                            st.rerun()
                 else:
-                    st.warning("⚠️ Completa todos los campos (contraseña mínimo 6 caracteres)")
+                    st.warning("⚠️ Completa todos los campos obligatorios (*)")
     
     with tab2:
+        st.markdown("""
+        <div class="card" style="background: #fff3cd;">
+            <h4>📌 Paso 2: Asignar usuario a empleado</h4>
+            <p>Crea un usuario y asígnalo a un empleado existente.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Obtener empleados sin usuario asignado
+        empleados_sin_usuario = execute_query("""
+            SELECT id, name, position, department 
+            FROM employees 
+            WHERE user_id IS NULL
+            ORDER BY name
+        """)
+        
+        if not empleados_sin_usuario:
+            st.info("✅ Todos los empleados ya tienen usuario asignado.")
+            if st.button("➕ Registrar nuevo empleado"):
+                st.session_state.page = "Empleados"
+                st.rerun()
+        else:
+            with st.form("asignar_usuario_form"):
+                # Selector de empleado
+                empleado_options = {f"{emp[1]} - {emp[2]}": emp[0] for emp in empleados_sin_usuario}
+                selected_empleado = st.selectbox(
+                    "Seleccionar empleado*", 
+                    options=list(empleado_options.keys())
+                )
+                empleado_id = empleado_options[selected_empleado]
+                
+                st.divider()
+                
+                # Datos del usuario
+                st.subheader("Datos del usuario")
+                username = st.text_input("Nombre de usuario*", placeholder="ej: juan.perez")
+                password = st.text_input("Contraseña*", type="password", placeholder="Mínimo 6 caracteres")
+                confirm_password = st.text_input("Confirmar contraseña*", type="password")
+                
+                submitted = st.form_submit_button("Crear usuario y asignar", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if not username or not password:
+                        st.warning("⚠️ Completa todos los campos obligatorios")
+                    elif len(password) < 6:
+                        st.warning("⚠️ La contraseña debe tener al menos 6 caracteres")
+                    elif password != confirm_password:
+                        st.warning("⚠️ Las contraseñas no coinciden")
+                    else:
+                        try:
+                            # Crear usuario
+                            user_result = create_user(username, password, "empleado")
+                            
+                            if user_result:
+                                # Obtener el ID del usuario creado
+                                user_id = user_result[0]
+                                
+                                # Asignar usuario al empleado
+                                update_query = "UPDATE employees SET user_id = ? WHERE id = ?"
+                                update_success = execute_insert(update_query, (user_id, empleado_id))
+                                
+                                if update_success:
+                                    st.success(f"✅ Usuario '{username}' creado y asignado exitosamente!")
+                                    st.balloons()
+                                    st.cache_data.clear()
+                                    time.sleep(1)
+                                    st.rerun()
+                        except ValueError as e:
+                            st.error(f"❌ {e}")
+                        except Exception as e:
+                            st.error(f"❌ Error al crear usuario: {e}")
+    
+    with tab3:
+        st.subheader("📋 Lista completa de empleados")
+        
+        df_emp = safe_dataframe("""
+            SELECT 
+                e.id,
+                e.name as 'Nombre',
+                e.position as 'Cargo',
+                e.department as 'Departamento',
+                e.goal as 'Meta',
+                CASE 
+                    WHEN u.username IS NOT NULL THEN u.username 
+                    ELSE '⏳ Pendiente' 
+                END as 'Usuario',
+                CASE 
+                    WHEN u.username IS NOT NULL THEN '✅ Asignado'
+                    ELSE '❌ Sin usuario'
+                END as 'Estado'
+            FROM employees e
+            LEFT JOIN users u ON e.user_id = u.id
+            ORDER BY 
+                CASE WHEN u.username IS NULL THEN 0 ELSE 1 END,
+                e.department, 
+                e.name
+        """)
+        
+        if not df_emp.empty:
+            # Colorear filas según estado
+            def color_estado(val):
+                if '✅' in val:
+                    return 'background-color: #d4edda'
+                elif '❌' in val:
+                    return 'background-color: #f8d7da'
+                return ''
+            
+            styled_df = df_emp.style.applymap(color_estado, subset=['Estado'])
+            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+            
+            # Estadísticas
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total empleados", len(df_emp))
+            with col2:
+                con_usuario = len(df_emp[df_emp['Estado'] == '✅ Asignado'])
+                st.metric("Con usuario", con_usuario)
+            with col3:
+                sin_usuario = len(df_emp[df_emp['Estado'] == '❌ Sin usuario'])
+                st.metric("Sin usuario", sin_usuario, delta=f"{sin_usuario} pendientes")
+            
+            # Resumen por departamento
+            st.subheader("📊 Resumen por departamento")
+            depto_resumen = df_emp.groupby('Departamento').agg({
+                'Nombre': 'count'
+            }).rename(columns={'Nombre': 'Empleados'}).reset_index()
+            st.dataframe(depto_resumen, use_container_width=True, hide_index=True)
+        else:
+            st.info("📭 No hay empleados registrados")
+
+# ============= PÁGINA DE USUARIOS (simplificada) =============
+def page_usuarios():
+    st.title("👤 Gestión de Usuarios AIS")
+    
+    tab1, tab2 = st.tabs(["📋 Lista de usuarios", "🔑 Cambiar contraseña"])
+    
+    with tab1:
         users = get_all_users()
         if users:
             df_users = pd.DataFrame(users, columns=["ID", "Usuario", "Rol", "Empleado", "Departamento"])
@@ -339,7 +455,6 @@ def page_usuarios():
             
             st.dataframe(df_users, use_container_width=True, hide_index=True)
             
-            # Estadísticas
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("Total usuarios", len(df_users))
@@ -347,141 +462,38 @@ def page_usuarios():
                 st.metric("Administradores", len(df_users[df_users['Rol'] == 'admin']))
             with col3:
                 st.metric("Empleados", len(df_users[df_users['Rol'] == 'empleado']))
-            
-            # Usuarios sin empleado asociado
-            sin_empleado = df_users[df_users['Empleado'] == '—']
-            if not sin_empleado.empty:
-                st.info(f"📌 {len(sin_empleado)} usuarios sin empleado asociado")
         else:
             st.info("No hay usuarios registrados")
-
-# ============= PÁGINA DE EMPLEADOS (asociación a usuarios existentes) =============
-def page_empleados():
-    st.title("🧑‍💼 Gestión de Empleados AIS")
-    
-    tab1, tab2 = st.tabs(["➕ Registrar empleado", "📋 Lista de empleados"])
-    
-    with tab1:
-        st.markdown("""
-        <div class="card" style="background: #fff3cd;">
-            <h4>📌 Asociar a usuario existente</h4>
-            <p>Primero debes crear el usuario en la sección <strong>Usuarios → Crear usuario</strong></p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Verificar usuarios disponibles (FUERA del formulario)
-        df_users = safe_dataframe("""
-            SELECT u.id, u.username 
-            FROM users u 
-            WHERE u.role = 'empleado' 
-            AND u.id NOT IN (
-                SELECT user_id FROM employees WHERE user_id IS NOT NULL
-            )
-            ORDER BY u.username
-        """)
-        
-        # Si no hay usuarios, mostrar mensaje y botón FUERA del formulario
-        if df_users.empty:
-            st.warning("⚠️ No hay usuarios disponibles. Ve a 'Usuarios' → 'Crear usuario' primero.")
-            
-            # Botón fuera del formulario
-            if st.button("➕ Ir a crear usuarios", key="go_to_users"):
-                st.session_state.page = "Usuarios"
-                st.rerun()
-        else:
-            # Mostrar el formulario solo si hay usuarios disponibles
-            with st.form("employee_form", clear_on_submit=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    name = st.text_input("Nombre completo", placeholder="Ej: Juan Pérez")
-                    position = st.selectbox("Cargo", CARGOS)
-                with col2:
-                    department = st.selectbox("Departamento", DEPARTAMENTOS)
-                    goal = st.number_input("Meta mensual", value=300, min_value=1, step=50)
-                
-                user_options = {row['username']: row['id'] for _, row in df_users.iterrows()}
-                selected_user = st.selectbox(
-                    "Seleccionar usuario", 
-                    options=list(user_options.keys()),
-                    help="Elige el usuario que tendrá este perfil de empleado"
-                )
-                user_id = user_options[selected_user]
-                
-                st.info(f"📌 Se asignará el perfil de empleado al usuario: **{selected_user}**")
-                
-                # Submit button DENTRO del formulario
-                submitted = st.form_submit_button("Registrar empleado", type="primary", use_container_width=True)
-                
-                if submitted and name:
-                    # Verificar que el usuario sigue disponible
-                    check_query = "SELECT id FROM users WHERE id = ? AND role = 'empleado' AND id NOT IN (SELECT user_id FROM employees)"
-                    check_result = execute_query(check_query, (user_id,))
-                    
-                    if check_result and check_result.fetchone():
-                        insert_query = """
-                            INSERT INTO employees (name, position, department, goal, user_id) 
-                            VALUES (?,?,?,?,?)
-                        """
-                        success = execute_query(
-                            insert_query, 
-                            (name, position, department, goal, user_id),
-                            commit=True
-                        )
-                        
-                        if success:
-                            st.success(f"✅ Empleado '{name}' registrado exitosamente y asociado al usuario '{selected_user}'")
-                            st.balloons()
-                            st.cache_data.clear()
-                            time.sleep(1)
-                            st.rerun()
-                    else:
-                        st.error("❌ El usuario seleccionado ya no está disponible. Por favor, selecciona otro.")
     
     with tab2:
-        df_emp = safe_dataframe("""
-            SELECT 
-                e.id, 
-                e.name, 
-                e.position, 
-                e.department, 
-                e.goal, 
-                u.username,
-                COALESCE(COUNT(s.id), 0) as ventas
-            FROM employees e
-            JOIN users u ON e.user_id = u.id
-            LEFT JOIN sales s ON e.id = s.employee_id
-            GROUP BY e.id
-            ORDER BY e.department, e.name
-        """)
+        st.subheader("Cambiar contraseña de usuario")
         
-        if not df_emp.empty:
-            df_emp = df_emp.rename(columns={'ventas': 'ventas_realizadas'})
-            st.dataframe(df_emp, use_container_width=True, hide_index=True)
+        users = get_all_users()
+        if users:
+            user_options = {f"{u[1]} ({u[3] or 'Sin empleado'})": u[0] for u in users}
+            selected_user = st.selectbox("Seleccionar usuario", options=list(user_options.keys()))
+            user_id = user_options[selected_user]
             
-            # Resumen por departamento
-            st.subheader("📊 Resumen por departamento")
-            col1, col2 = st.columns(2)
+            new_pass = st.text_input("Nueva contraseña", type="password", placeholder="Mínimo 6 caracteres")
+            confirm_pass = st.text_input("Confirmar contraseña", type="password")
             
-            with col1:
-                depto_resumen = df_emp.groupby('department').agg({
-                    'name': 'count',
-                    'goal': 'sum'
-                }).rename(columns={'name': 'Empleados', 'goal': 'Meta total'}).reset_index()
-                st.dataframe(depto_resumen, use_container_width=True, hide_index=True)
-            
-            with col2:
-                fig = px.pie(depto_resumen, values='Empleados', names='department',
-                           title="Distribución de empleados por departamento")
-                st.plotly_chart(fig, use_container_width=True)
-            
-            st.info(f"✅ Total de empleados registrados: {len(df_emp)}")
+            if st.button("Cambiar contraseña", type="primary"):
+                if new_pass and len(new_pass) >= 6:
+                    if new_pass == confirm_pass:
+                        from auth import hash_password
+                        success = execute_insert(
+                            "UPDATE users SET password = ? WHERE id = ?",
+                            (hash_password(new_pass), user_id)
+                        )
+                        if success:
+                            st.success("✅ Contraseña actualizada!")
+                            st.balloons()
+                    else:
+                        st.error("❌ Las contraseñas no coinciden")
+                else:
+                    st.warning("⚠️ La contraseña debe tener al menos 6 caracteres")
         else:
-            st.info("📭 No hay empleados registrados aún")
-            st.markdown("""
-            **Pasos para registrar un empleado:**
-            1. Ve a **Usuarios → Crear usuario** y crea un usuario con rol "empleado"
-            2. Vuelve a **Empleados → Registrar empleado** y asocia el usuario
-            """)
+            st.info("No hay usuarios para modificar")
 
 # Las demás páginas se mantienen igual...
 def page_dashboard():
@@ -647,14 +659,17 @@ def page_registrar_ventas():
     </div>
     """, unsafe_allow_html=True)
     
-    hoy_query = "SELECT COUNT(*) FROM sales WHERE employee_id = ? AND date = ?"
-    result = execute_query(hoy_query, (emp_info[0], str(date.today())))
-    ya_registro_hoy = result.fetchone()[0] > 0 if result else False
+    # Verificar registro hoy
+    result = execute_query(
+        "SELECT COUNT(*) FROM sales WHERE employee_id = ? AND date = ?",
+        (emp_info[0], str(date.today()))
+    )
+    ya_registro_hoy = result[0][0] > 0 if result else False
     
     if ya_registro_hoy:
         st.warning("⚠️ Ya has registrado ventas hoy. ¿Deseas agregar más?")
     
-    with st.form("ventas_form", clear_on_submit=True):
+    with st.form("ventas_form"):
         st.subheader("Ingresa las ventas del día")
         
         col1, col2 = st.columns(2)
@@ -668,14 +683,13 @@ def page_registrar_ventas():
         
         total = aut + of + ma + ad
         
+        # Progreso mensual
         mes_actual = date.today().strftime("%Y-%m")
-        progreso_query = """
-            SELECT SUM(autoliquidable + oferta + marca + adicional)
-            FROM sales 
-            WHERE employee_id = ? AND date LIKE ?
-        """
-        result = execute_query(progreso_query, (emp_info[0], f"{mes_actual}%"))
-        ventas_mes = result.fetchone()[0] or 0 if result else 0
+        result = execute_query(
+            "SELECT SUM(autoliquidable + oferta + marca + adicional) FROM sales WHERE employee_id = ? AND date LIKE ?",
+            (emp_info[0], f"{mes_actual}%")
+        )
+        ventas_mes = result[0][0] or 0 if result else 0
         
         progreso = ((ventas_mes + total) / emp_info[4] * 100) if emp_info[4] > 0 else 0
         
@@ -689,25 +703,19 @@ def page_registrar_ventas():
         </div>
         """, unsafe_allow_html=True)
         
-        submitted = st.form_submit_button("💾 Guardar ventas", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("💾 Guardar ventas", use_container_width=True)
         
         if submitted:
             if total > 0:
-                insert_query = """
+                success = execute_insert("""
                     INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
                     VALUES (?, ?, ?, ?, ?, ?)
-                """
-                success = execute_query(
-                    insert_query, 
-                    (emp_info[0], str(date.today()), aut, of, ma, ad),
-                    commit=True
-                )
+                """, (emp_info[0], str(date.today()), aut, of, ma, ad))
                 
                 if success:
                     st.success("✅ Venta registrada exitosamente!")
                     st.balloons()
                     st.cache_data.clear()
-                    time.sleep(1)
                     st.rerun()
             else:
                 st.warning("⚠️ Debes ingresar al menos una unidad")
@@ -803,7 +811,7 @@ def page_reportes():
     
     tipo_reporte = st.selectbox(
         "Tipo de reporte",
-        ["Ventas por departamento", "Ventas por cargo", "Análisis de cumplimiento"]
+        ["Ventas por departamento", "Ventas por cargo"]
     )
     
     if st.button("🔄 Generar reporte"):
@@ -826,7 +834,6 @@ def page_reportes():
         
         if not df.empty:
             st.dataframe(df, use_container_width=True)
-            
             fig = px.bar(df, x='department', y='total',
                         title="Ventas por departamento",
                         color='department')
@@ -842,8 +849,8 @@ def main():
         pages = {
             "Dashboard": page_dashboard,
             "Ranking": page_ranking,
-            "Usuarios": page_usuarios,
             "Empleados": page_empleados,
+            "Usuarios": page_usuarios,
             "Reportes": page_reportes,
             "Registrar ventas": page_registrar_ventas,
             "Mi desempeño": page_mi_desempeno,
@@ -853,10 +860,7 @@ def main():
         if st.session_state.page in pages:
             pages[st.session_state.page]()
         else:
-            if st.session_state.user["role"] == "admin":
-                page_dashboard()
-            else:
-                page_registrar_ventas()
+            page_dashboard() if st.session_state.user["role"] == "admin" else page_registrar_ventas()
 
 if __name__ == "__main__":
     main()
