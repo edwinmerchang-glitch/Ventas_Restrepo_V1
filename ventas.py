@@ -68,8 +68,23 @@ def load_css():
         with open("styles.css") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
-        # CSS por defecto (igual que antes)
-        pass
+        st.markdown("""
+        <style>
+        .main { background: linear-gradient(120deg,#f4f6ff,#eef2ff); }
+        .card { background: white; padding: 20px; border-radius: 18px; 
+                box-shadow: 0px 4px 15px rgba(0,0,0,0.08); margin-bottom: 15px; }
+        .metric { font-size: 28px; font-weight: 700; color: #3b5bfd; }
+        .stButton > button { width: 100%; border-radius: 10px; 
+                            background: linear-gradient(90deg,#4f7cff,#7aa2ff); 
+                            color: white; font-weight: 600; border: none; }
+        .stButton > button:hover { background: linear-gradient(90deg,#3b5bfd,#6b8aff); }
+        .badge-cargo-drogueria { background: #e3f2fd; color: #1976d2; }
+        .badge-cargo-equipos { background: #e8f5e8; color: #2e7d32; }
+        .badge-cargo-pasillos { background: #fff3e0; color: #f57c00; }
+        .badge-cargo-cajas { background: #fce4ec; color: #c2185b; }
+        .badge-depto { background: #f3e5f5; color: #7b1fa2; }
+        </style>
+        """, unsafe_allow_html=True)
 
 load_css()
 
@@ -82,7 +97,7 @@ if "data_loaded" not in st.session_state:
     st.session_state.data_loaded = False
 
 # ---------------- FUNCIONES DE UTILIDAD CON PERSISTENCIA ---------------- #
-@st.cache_data(ttl=60)  # Cache por 60 segundos
+@st.cache_data(ttl=60)
 def safe_dataframe(query, params=None):
     """Ejecutar query de forma segura y retornar DataFrame con cache"""
     try:
@@ -100,6 +115,7 @@ def safe_dataframe(query, params=None):
         st.error(f"Error inesperado: {e}")
         return pd.DataFrame()
 
+# ============= FUNCIÓN CORREGIDA =============
 def execute_query(query, params=None, commit=False):
     """Ejecutar query y hacer commit si es necesario"""
     conn = None
@@ -116,16 +132,19 @@ def execute_query(query, params=None, commit=False):
             conn.commit()
             # Limpiar cache después de modificaciones
             st.cache_data.clear()
+            return True  # Retornar True en lugar del cursor
+        else:
+            return cur  # Solo retornar cursor para SELECT
             
-        return cur
-        
     except Exception as e:
         st.error(f"Error en base de datos: {e}")
         if conn:
             conn.rollback()
         return None
     finally:
-        if conn:
+        if conn and not commit:  # Solo cerrar si no hicimos commit
+            conn.close()
+        elif conn and commit:  # Si hicimos commit, cerramos igual
             conn.close()
 
 def get_employee_info(user_id):
@@ -202,7 +221,6 @@ def show_login():
             
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Mostrar información de la base de datos
             with st.expander("ℹ️ Información del sistema"):
                 st.write(f"📁 Base de datos: `{DB_PATH}`")
                 if st.button("Verificar conexión"):
@@ -222,7 +240,6 @@ def show_menu():
         </div>
         """, unsafe_allow_html=True)
         
-        # Información del usuario
         emp_info = get_employee_info(st.session_state.user["id"])
         if emp_info:
             badge_class = get_badge_class(emp_info[2])
@@ -240,7 +257,6 @@ def show_menu():
         
         st.divider()
         
-        # Opciones de menú según rol
         if st.session_state.user["role"] == "admin":
             menu_options = {
                 "📊 Dashboard": "Dashboard",
@@ -269,7 +285,6 @@ def show_menu():
         
         st.divider()
         
-        # Botón de logout
         if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):
             for key in ["user", "page", "data_loaded"]:
                 if key in st.session_state:
@@ -285,7 +300,6 @@ def show_menu():
 def page_dashboard():
     st.title("📊 Dashboard Ejecutivo AIS")
     
-    # Filtros
     col1, col2, col3 = st.columns(3)
     with col1:
         fecha_inicio = st.date_input("Fecha inicio", value=date.today().replace(day=1))
@@ -294,12 +308,10 @@ def page_dashboard():
     with col3:
         depto_filtro = st.multiselect("Departamento", DEPARTAMENTOS, default=DEPARTAMENTOS)
     
-    # Botón para recargar datos
     if st.button("🔄 Recargar datos"):
         st.cache_data.clear()
         st.rerun()
     
-    # Construir query
     query = """
         SELECT s.*, e.name, e.position, e.department 
         FROM sales s
@@ -325,7 +337,6 @@ def page_dashboard():
     df["total"] = df[['autoliquidable','oferta','marca','adicional']].sum(axis=1)
     df["date"] = pd.to_datetime(df["date"])
     
-    # Métricas
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Total Unidades", f"{int(df['total'].sum()):,}")
@@ -336,7 +347,6 @@ def page_dashboard():
     with col4:
         st.metric("Marca Propia", f"{int(df['marca'].sum()):,}")
     
-    # Gráficos
     tab1, tab2, tab3 = st.tabs(["📈 Evolución", "📊 Distribución", "👥 Por empleado"])
     
     with tab1:
@@ -365,7 +375,6 @@ def page_dashboard():
 def page_ranking():
     st.title("🏆 Ranking de Ventas AIS")
     
-    # Filtros
     col1, col2 = st.columns(2)
     with col1:
         periodo = st.selectbox("Período", ["Este mes", "Este trimestre", "Este año", "Todo"])
@@ -376,7 +385,6 @@ def page_ranking():
         st.cache_data.clear()
         st.rerun()
     
-    # Construir filtro de fecha
     hoy = date.today()
     if periodo == "Este mes":
         fecha_inicio = hoy.replace(day=1)
@@ -391,7 +399,6 @@ def page_ranking():
     else:
         cond_fecha = ""
     
-    # Construir query
     query = f"""
     SELECT 
         e.name as Empleado,
@@ -416,10 +423,8 @@ def page_ranking():
         st.info("ℹ️ No hay datos aún")
         return
     
-    # Calcular cumplimiento
     df['Cumplimiento'] = (df['Total'] / df['Meta'] * 100).round(1)
     
-    # Mostrar ranking
     st.subheader("📋 Ranking General")
     df_display = df.copy()
     df_display["Posición"] = range(1, len(df) + 1)
@@ -474,6 +479,7 @@ def page_usuarios():
         else:
             st.info("No hay usuarios registrados")
 
+# ============= PÁGINA DE EMPLEADOS CORREGIDA =============
 def page_empleados():
     st.title("🧑‍💼 Gestión de Empleados AIS")
     
@@ -512,13 +518,21 @@ def page_empleados():
                     INSERT INTO employees (name, position, department, goal, user_id) 
                     VALUES (?,?,?,?,?)
                 """
-                result = execute_query(query, (name, position, department, goal, user_id), commit=True)
+                # Verificamos que la query se ejecutó correctamente
+                success = execute_query(query, (name, position, department, goal, user_id), commit=True)
                 
-                if result:
+                if success:
                     st.success(f"✅ Empleado '{name}' registrado exitosamente")
                     st.balloons()
+                    st.cache_data.clear()
                     time.sleep(1)
                     st.rerun()
+                else:
+                    st.error("❌ Error al registrar el empleado. Por favor intenta de nuevo.")
+            elif submitted and not name:
+                st.warning("⚠️ Debes ingresar el nombre del empleado")
+            elif submitted and not user_id:
+                st.warning("⚠️ Debes seleccionar un usuario asociado")
     
     with tab2:
         df_emp = safe_dataframe("""
@@ -534,6 +548,9 @@ def page_empleados():
         
         if not df_emp.empty:
             st.dataframe(df_emp, use_container_width=True, hide_index=True)
+            st.info(f"✅ Total de empleados registrados: {len(df_emp)}")
+        else:
+            st.info("📭 No hay empleados registrados aún")
 
 def page_registrar_ventas():
     st.title("📝 Registro Diario de Ventas - AIS")
@@ -560,7 +577,6 @@ def page_registrar_ventas():
     </div>
     """, unsafe_allow_html=True)
     
-    # Verificar registro hoy
     hoy_query = "SELECT COUNT(*) FROM sales WHERE employee_id = ? AND date = ?"
     result = execute_query(hoy_query, (emp_info[0], str(date.today())))
     ya_registro_hoy = result.fetchone()[0] > 0 if result else False
@@ -582,7 +598,6 @@ def page_registrar_ventas():
         
         total = aut + of + ma + ad
         
-        # Progreso mensual
         mes_actual = date.today().strftime("%Y-%m")
         progreso_query = """
             SELECT SUM(autoliquidable + oferta + marca + adicional)
@@ -612,13 +627,13 @@ def page_registrar_ventas():
                     INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """
-                result = execute_query(
+                success = execute_query(
                     insert_query, 
                     (emp_info[0], str(date.today()), aut, of, ma, ad),
                     commit=True
                 )
                 
-                if result:
+                if success:
                     st.success("✅ Venta registrada exitosamente!")
                     st.balloons()
                     st.cache_data.clear()
@@ -645,7 +660,6 @@ def page_mi_desempeno():
         st.cache_data.clear()
         st.rerun()
     
-    # Construir filtro
     hoy = date.today()
     if periodo == "Esta semana":
         fecha_inicio = hoy - pd.Timedelta(days=hoy.weekday())
@@ -674,7 +688,6 @@ def page_mi_desempeno():
     df["total"] = df[['autoliquidable','oferta','marca','adicional']].sum(axis=1)
     df["date"] = pd.to_datetime(df["date"])
     
-    # Métricas
     total_periodo = int(df["total"].sum())
     promedio = int(df["total"].mean())
     mejor_dia = int(df["total"].max())
@@ -690,7 +703,6 @@ def page_mi_desempeno():
     with col4:
         st.metric("Progreso meta", f"{progreso_meta:.1f}%")
     
-    # Gráfico
     fig = px.line(df, x="date", y="total", 
                  title=f"📈 Evolución personal - {periodo}",
                  markers=True)
@@ -717,13 +729,13 @@ def page_mi_perfil():
                     INSERT INTO employees (name, position, department, goal, user_id) 
                     VALUES (?,?,?,?,?)
                 """
-                result = execute_query(
+                success = execute_query(
                     insert_query, 
                     (name, position, department, goal, st.session_state.user["id"]),
                     commit=True
                 )
                 
-                if result:
+                if success:
                     st.success("✅ Perfil completado exitosamente!")
                     st.balloons()
                     st.cache_data.clear()
