@@ -769,7 +769,7 @@ def page_usuarios():
 
 # Las demás páginas se mantienen igual...
 def page_dashboard():
-    st.title("📊 Dashboard Ejecutivo AIS")
+    st.title("📊 Dashboard de ventas")
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -844,7 +844,7 @@ def page_dashboard():
         st.plotly_chart(fig3, use_container_width=True)
 
 def page_ranking():
-    st.title("🏆 Ranking de Ventas AIS")
+    st.title("🏆 Ranking de Ventas")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -1079,7 +1079,7 @@ def page_mi_perfil():
         st.warning("⚠️ No tienes un perfil de empleado configurado. Contacta al administrador.")
 
 def page_reportes():
-    st.title("📊 Reportes Avanzados AIS")
+    st.title("📊 Reportes Avanzados")
     
     tipo_reporte = st.selectbox(
         "Tipo de reporte",
