@@ -101,3 +101,28 @@ def get_all_users():
     finally:
         if conn:
             conn.close()
+
+def get_all_users_with_employees():
+    """Obtener todos los usuarios con información de empleados"""
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT u.id, u.username, u.role, 
+                   e.name as employee_name,
+                   e.id as employee_id
+            FROM users u
+            LEFT JOIN employees e ON u.id = e.user_id
+            ORDER BY u.username
+        """)
+        
+        return cur.fetchall()
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo usuarios: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()

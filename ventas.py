@@ -581,7 +581,11 @@ def page_empleados():
 def page_usuarios():
     st.title("👤 Gestión de Usuarios AIS")
     
-    tab1, tab2 = st.tabs(["📋 Lista de usuarios", "🔑 Cambiar contraseña"])
+    tab1, tab2, tab3 = st.tabs([
+        "📋 Lista de usuarios", 
+        "🔑 Cambiar contraseña",
+        "✏️ Editar/Eliminar usuarios"
+    ])
     
     with tab1:
         users = get_all_users()
@@ -608,7 +612,7 @@ def page_usuarios():
         users = get_all_users()
         if users:
             user_options = {f"{u[1]} ({u[3] or 'Sin empleado'})": u[0] for u in users}
-            selected_user = st.selectbox("Seleccionar usuario", options=list(user_options.keys()))
+            selected_user = st.selectbox("Seleccionar usuario", options=list(user_options.keys()), key="cambiar_pass_select")
             user_id = user_options[selected_user]
             
             new_pass = st.text_input("Nueva contraseña", type="password", placeholder="Mínimo 6 caracteres")
@@ -631,6 +635,137 @@ def page_usuarios():
                     st.warning("⚠️ La contraseña debe tener al menos 6 caracteres")
         else:
             st.info("No hay usuarios para modificar")
+    
+    # ===== NUEVA PESTAÑA: EDITAR/ELIMINAR USUARIOS =====
+    with tab3:
+        st.subheader("✏️ Editar o Eliminar Usuarios")
+        
+        st.markdown("""
+        <div class="card" style="background: #fff3cd;">
+            <h4>⚠️ Importante</h4>
+            <p>Los usuarios que tienen un empleado asociado no se pueden eliminar directamente.</p>
+            <p>Primero debes desasociar el empleado o eliminarlo.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Obtener todos los usuarios
+        todos_usuarios = execute_query("""
+            SELECT 
+                u.id, 
+                u.username, 
+                u.role,
+                e.name as empleado_nombre,
+                e.id as empleado_id
+            FROM users u
+            LEFT JOIN employees e ON u.id = e.user_id
+            ORDER BY u.username
+        """)
+        
+        if not todos_usuarios:
+            st.info("📭 No hay usuarios para editar")
+        else:
+            # Crear opciones para el selector
+            usuario_options = {}
+            for user in todos_usuarios:
+                empleado_info = f" (Empleado: {user[3]})" if user[3] else " (Sin empleado)"
+                display_text = f"{user[1]} - {user[2]}{empleado_info}"
+                usuario_options[display_text] = user[0]
+            
+            selected_display = st.selectbox(
+                "Seleccionar usuario",
+                options=list(usuario_options.keys()),
+                key="select_usuario_editar"
+            )
+            usuario_id = usuario_options[selected_display]
+            
+            # Obtener datos del usuario seleccionado
+            usuario_data = next((user for user in todos_usuarios if user[0] == usuario_id), None)
+            
+            if usuario_data:
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    st.markdown("### 📝 Editar información")
+                    
+                    # No permitir editar admin por defecto
+                    if usuario_data[1] == "admin":
+                        st.warning("⚠️ El usuario 'admin' no se puede modificar")
+                    else:
+                        with st.form("editar_usuario_form"):
+                            new_username = st.text_input("Nombre de usuario", value=usuario_data[1])
+                            new_role = st.selectbox("Rol", ["empleado", "admin"], 
+                                                  index=0 if usuario_data[2] == "empleado" else 1)
+                            
+                            col_edit1, col_edit2 = st.columns(2)
+                            with col_edit1:
+                                submitted_edit = st.form_submit_button("💾 Guardar cambios", type="primary", use_container_width=True)
+                            with col_edit2:
+                                submitted_delete = st.form_submit_button("🗑️ Eliminar usuario", type="secondary", use_container_width=True)
+                            
+                            if submitted_edit:
+                                if new_username:
+                                    # Verificar si el nuevo username ya existe (y no es el mismo usuario)
+                                    check_query = "SELECT id FROM users WHERE username = ? AND id != ?"
+                                    check_result = execute_query(check_query, (new_username, usuario_id))
+                                    
+                                    if check_result:
+                                        st.warning(f"⚠️ El nombre de usuario '{new_username}' ya existe")
+                                    else:
+                                        update_query = "UPDATE users SET username = ?, role = ? WHERE id = ?"
+                                        success = execute_insert(update_query, (new_username, new_role, usuario_id))
+                                        
+                                        if success:
+                                            st.success("✅ Usuario actualizado exitosamente!")
+                                            st.balloons()
+                                            st.cache_data.clear()
+                                            time.sleep(1)
+                                            st.rerun()
+                                else:
+                                    st.warning("⚠️ El nombre de usuario no puede estar vacío")
+                            
+                            if submitted_delete:
+                                # Verificar si el usuario tiene empleado asociado
+                                if usuario_data[3]:  # Tiene empleado
+                                    st.error("❌ No se puede eliminar: el usuario tiene un empleado asociado")
+                                else:
+                                    # Confirmar eliminación
+                                    st.session_state.confirmar_eliminar_usuario = usuario_id
+                        
+                        # Mostrar confirmación fuera del formulario
+                        if 'confirmar_eliminar_usuario' in st.session_state and st.session_state.confirmar_eliminar_usuario == usuario_id:
+                            st.warning(f"⚠️ ¿Estás seguro de eliminar el usuario '{usuario_data[1]}'?")
+                            col_confirm1, col_confirm2 = st.columns(2)
+                            with col_confirm1:
+                                if st.button("✅ Sí, eliminar", key="confirm_si_usuario"):
+                                    delete_query = "DELETE FROM users WHERE id = ?"
+                                    success = execute_insert(delete_query, (usuario_id,))
+                                    
+                                    if success:
+                                        st.success("✅ Usuario eliminado exitosamente!")
+                                        del st.session_state.confirmar_eliminar_usuario
+                                        st.cache_data.clear()
+                                        time.sleep(1)
+                                        st.rerun()
+                            with col_confirm2:
+                                if st.button("❌ No, cancelar", key="confirm_no_usuario"):
+                                    del st.session_state.confirmar_eliminar_usuario
+                                    st.rerun()
+                
+                with col2:
+                    st.markdown("### ℹ️ Información")
+                    
+                    st.markdown(f"""
+                    **ID:** {usuario_data[0]}
+                    
+                    **Rol:** {usuario_data[2]}
+                    
+                    **Empleado:** {usuario_data[3] or 'No asociado'}
+                    """)
+                    
+                    if usuario_data[3]:
+                        st.info("🔒 Este usuario tiene un empleado asociado")
+                    else:
+                        st.info("👤 Usuario sin empleado")
 
 # Las demás páginas se mantienen igual...
 def page_dashboard():
