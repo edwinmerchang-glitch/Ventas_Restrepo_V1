@@ -39,27 +39,30 @@ def create_default_admin():
 # Crear admin por defecto
 create_default_admin()
 
-# Opciones predefinidas para cargos y departamentos
+# ============= NUEVAS LISTAS PERSONALIZADAS =============
+# Cargos específicos para tu empresa
 CARGOS = [
-    "Vendedor",
-    "Vendedor Senior",
-    "Supervisor de Ventas",
-    "Jefe de Ventas",
-    "Gerente de Sucursal",
-    "Ejecutivo de Cuentas",
-    "Asesor Comercial",
-    "Practicante"
+    "Ais Droguería",
+    "Ais Equipos Médicos", 
+    "Ais Pasillos",
+    "Ais Cajas"
 ]
 
+# Departamentos específicos para tu empresa
 DEPARTAMENTOS = [
-    "Ventas Minoristas",
-    "Ventas Corporativas",
-    "Televentas",
-    "Ventas Exterior",
-    "Ventas Online",
-    "Atención al Cliente",
-    "Administración"
+    "Droguería",
+    "Equipos Médicos",
+    "Pasillos",
+    "Cajas"
 ]
+
+# Diccionario para mapear cargos con departamentos (opcional, para lógica de negocio)
+CARGO_DEPARTAMENTO_MAP = {
+    "Ais Droguería": "Droguería",
+    "Ais Equipos Médicos": "Equipos Médicos",
+    "Ais Pasillos": "Pasillos",
+    "Ais Cajas": "Cajas"
+}
 
 def load_css():
     """Cargar estilos CSS"""
@@ -84,8 +87,11 @@ def load_css():
             font-size: 12px;
             font-weight: 600;
         }
-        .badge-cargo { background: #e3f2fd; color: #1976d2; }
-        .badge-depto { background: #e8f5e8; color: #2e7d32; }
+        .badge-cargo-drogueria { background: #e3f2fd; color: #1976d2; }
+        .badge-cargo-equipos { background: #e8f5e8; color: #2e7d32; }
+        .badge-cargo-pasillos { background: #fff3e0; color: #f57c00; }
+        .badge-cargo-cajas { background: #fce4ec; color: #c2185b; }
+        .badge-depto { background: #f3e5f5; color: #7b1fa2; }
         </style>
         """, unsafe_allow_html=True)
 
@@ -134,10 +140,23 @@ def get_employee_info(user_id):
         st.error(f"Error al obtener información del empleado: {e}")
         return None
 
+def get_badge_class(position):
+    """Obtener la clase CSS para el badge según el cargo"""
+    if "Droguería" in position:
+        return "badge-cargo-drogueria"
+    elif "Equipos" in position:
+        return "badge-cargo-equipos"
+    elif "Pasillos" in position:
+        return "badge-cargo-pasillos"
+    elif "Cajas" in position:
+        return "badge-cargo-cajas"
+    else:
+        return "badge-cargo-drogueria"
+
 # ---------------- LOGIN ---------------- #
 def show_login():
     """Mostrar pantalla de login"""
-    st.title("📊 Sistema Profesional de Ventas")
+    st.title("📊 Sistema Profesional de Ventas - AIS")
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -183,17 +202,25 @@ def show_login():
 def show_menu():
     """Mostrar menú con botones mejorados"""
     with st.sidebar:
-        # Información del usuario
-        st.image("https://img.icons8.com/fluency/96/null/business.png", width=80)
+        # Logo de la empresa
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #4f7cff; font-size: 32px; margin: 0;">AIS</h1>
+            <p style="color: #666; font-size: 14px;">Sistema de Ventas</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Mostrar información del empleado si existe
+        # Información del usuario
         emp_info = get_employee_info(st.session_state.user["id"])
         if emp_info:
+            badge_class = get_badge_class(emp_info[2])
             st.markdown(f"""
-            <div style="text-align: center;">
-                <h4>{emp_info[1]}</h4>
-                <p>
-                    <span class="badge badge-cargo">{emp_info[2] or 'Sin cargo'}</span>
+            <div style="text-align: center; padding: 10px; background: white; border-radius: 10px; margin-bottom: 15px;">
+                <h4 style="margin: 5px 0;">{emp_info[1]}</h4>
+                <p style="margin: 2px 0;">
+                    <span class="badge {badge_class}">{emp_info[2] or 'Sin cargo'}</span>
+                </p>
+                <p style="margin: 2px 0;">
                     <span class="badge badge-depto">{emp_info[3] or 'Sin depto'}</span>
                 </p>
             </div>
@@ -243,27 +270,39 @@ def show_menu():
         # Mostrar información adicional
         st.divider()
         st.caption(f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-        st.caption("⚡ Versión 3.0")
+        st.caption("⚡ AIS Ventas v3.0")
 
 # ---------------- PÁGINAS ---------------- #
 def page_dashboard():
-    st.title("📊 Dashboard Ejecutivo")
+    st.title("📊 Dashboard Ejecutivo AIS")
     
-    # Filtros
-    col1, col2 = st.columns(2)
+    # Filtros por departamento
+    col1, col2, col3 = st.columns(3)
     with col1:
         fecha_inicio = st.date_input("Fecha inicio", value=date.today().replace(day=1))
     with col2:
         fecha_fin = st.date_input("Fecha fin", value=date.today())
+    with col3:
+        depto_filtro = st.multiselect("Departamento", DEPARTAMENTOS, default=DEPARTAMENTOS)
+    
+    # Construir query con filtros
+    query = """
+        SELECT s.*, e.name, e.position, e.department 
+        FROM sales s
+        JOIN employees e ON s.employee_id = e.id
+        WHERE date BETWEEN ? AND ?
+    """
+    params = [fecha_inicio, fecha_fin]
+    
+    if depto_filtro:
+        placeholders = ','.join(['?'] * len(depto_filtro))
+        query += f" AND e.department IN ({placeholders})"
+        params.extend(depto_filtro)
+    
+    query += " ORDER BY date DESC"
     
     with st.spinner("Cargando datos..."):
-        df = safe_dataframe("""
-            SELECT s.*, e.name, e.position, e.department 
-            FROM sales s
-            JOIN employees e ON s.employee_id = e.id
-            WHERE date BETWEEN ? AND ?
-            ORDER BY date DESC
-        """, (fecha_inicio, fecha_fin))
+        df = safe_dataframe(query, params)
     
     if df.empty:
         st.info("ℹ️ No hay ventas en el período seleccionado")
@@ -287,55 +326,55 @@ def page_dashboard():
     tab1, tab2, tab3 = st.tabs(["📈 Evolución", "📊 Distribución", "👥 Por empleado"])
     
     with tab1:
-        fig = px.line(df, x="date", y="total", 
-                     title="📈 Evolución diaria de ventas",
+        fig = px.line(df, x="date", y="total", color="department",
+                     title="📈 Evolución diaria de ventas por departamento",
                      template="plotly_white")
-        fig.update_traces(line_color="#4f7cff", line_width=3)
         st.plotly_chart(fig, use_container_width=True)
     
     with tab2:
-        dist_df = df[['autoliquidable','oferta','marca','adicional']].sum().reset_index()
-        dist_df.columns = ['Tipo', 'Cantidad']
-        fig2 = px.pie(dist_df, values='Cantidad', names='Tipo',
-                     title="🥧 Distribución por tipo",
-                     color_discrete_sequence=px.colors.sequential.Blues_r)
+        dist_df = df.groupby('department')[['autoliquidable','oferta','marca','adicional']].sum().reset_index()
+        dist_df_melted = dist_df.melt(id_vars=['department'], var_name='Tipo', value_name='Cantidad')
+        fig2 = px.bar(dist_df_melted, x='department', y='Cantidad', color='Tipo',
+                     title="Distribución por departamento y tipo",
+                     barmode='stack')
         st.plotly_chart(fig2, use_container_width=True)
     
     with tab3:
-        emp_df = df.groupby('name').agg({
-            'total': 'sum',
-            'autoliquidable': 'sum',
-            'oferta': 'sum',
-            'marca': 'sum',
-            'adicional': 'sum'
+        emp_df = df.groupby(['name', 'department']).agg({
+            'total': 'sum'
         }).reset_index()
         
-        fig3 = px.bar(emp_df, x='name', y='total', 
+        fig3 = px.bar(emp_df, x='name', y='total', color='department',
                      title="Ventas por empleado",
-                     color='total',
-                     color_continuous_scale="Blues")
+                     barmode='group')
         st.plotly_chart(fig3, use_container_width=True)
 
 def page_ranking():
-    st.title("🏆 Ranking de Ventas")
+    st.title("🏆 Ranking de Ventas AIS")
     
-    # Filtro por período
-    periodo = st.selectbox("Período", ["Este mes", "Este trimestre", "Este año", "Todo"])
+    # Filtros
+    col1, col2 = st.columns(2)
+    with col1:
+        periodo = st.selectbox("Período", ["Este mes", "Este trimestre", "Este año", "Todo"])
+    with col2:
+        depto_filtro = st.selectbox("Departamento", ["Todos"] + DEPARTAMENTOS)
     
-    # Construir query según período
+    # Construir filtro de fecha
+    hoy = date.today()
     if periodo == "Este mes":
-        fecha_inicio = date.today().replace(day=1)
+        fecha_inicio = hoy.replace(day=1)
         cond_fecha = f"AND date >= '{fecha_inicio}'"
     elif periodo == "Este trimestre":
-        mes_actual = date.today().month
-        trimestre_inicio = date.today().replace(month=((mes_actual-1)//3)*3+1, day=1)
+        mes_actual = hoy.month
+        trimestre_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
         cond_fecha = f"AND date >= '{trimestre_inicio}'"
     elif periodo == "Este año":
-        fecha_inicio = date.today().replace(month=1, day=1)
+        fecha_inicio = hoy.replace(month=1, day=1)
         cond_fecha = f"AND date >= '{fecha_inicio}'"
     else:
         cond_fecha = ""
     
+    # Construir query
     query = f"""
     SELECT 
         e.name as Empleado,
@@ -347,9 +386,12 @@ def page_ranking():
         e.goal as Meta
     FROM employees e
     LEFT JOIN sales s ON e.id = s.employee_id {cond_fecha}
-    GROUP BY e.id
-    ORDER BY Total DESC
     """
+    
+    if depto_filtro != "Todos":
+        query += f" WHERE e.department = '{depto_filtro}'"
+    
+    query += " GROUP BY e.id ORDER BY Total DESC"
     
     df = safe_dataframe(query)
     
@@ -360,25 +402,34 @@ def page_ranking():
     # Calcular cumplimiento de meta
     df['Cumplimiento'] = (df['Total'] / df['Meta'] * 100).round(1)
     
-    # Top 3 destacado
-    st.subheader("🥇 Podio de Honor")
-    cols = st.columns(3)
-    for i, col in enumerate(cols[:min(3, len(df))]):
-        with col:
-            cumplimiento_color = "🟢" if df.iloc[i]['Cumplimiento'] >= 100 else "🟡" if df.iloc[i]['Cumplimiento'] >= 70 else "🔴"
-            st.markdown(f"""
-            <div class="card" style="text-align:center">
-                <h3>{'🥇' if i==0 else '🥈' if i==1 else '🥉'}</h3>
-                <h4>{df.iloc[i]['Empleado']}</h4>
-                <p><span class="badge badge-cargo">{df.iloc[i]['Cargo']}</span></p>
-                <p><span class="badge badge-depto">{df.iloc[i]['Departamento']}</span></p>
-                <p class="metric">{int(df.iloc[i]['Total']):,}</p>
-                <p>unidades • {cumplimiento_color} {df.iloc[i]['Cumplimiento']}% de meta</p>
-            </div>
-            """, unsafe_allow_html=True)
+    # Top por departamento
+    st.subheader("🥇 Podio de Honor por Departamento")
     
-    # Tabla completa
-    st.subheader("📋 Tabla completa")
+    # Crear pestañas para cada departamento
+    deptos_tab = st.tabs(DEPARTAMENTOS)
+    
+    for i, depto in enumerate(DEPARTAMENTOS):
+        with deptos_tab[i]:
+            df_depto = df[df['Departamento'] == depto].head(3)
+            if not df_depto.empty:
+                cols = st.columns(len(df_depto))
+                for j, (idx, row) in enumerate(df_depto.iterrows()):
+                    with cols[j]:
+                        badge_class = get_badge_class(row['Cargo'])
+                        st.markdown(f"""
+                        <div class="card" style="text-align:center">
+                            <h3>{'🥇' if j==0 else '🥈' if j==1 else '🥉'}</h3>
+                            <h4>{row['Empleado']}</h4>
+                            <p><span class="badge {badge_class}">{row['Cargo']}</span></p>
+                            <p class="metric">{int(row['Total']):,}</p>
+                            <p>unidades • {row['Cumplimiento']}% de meta</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.info(f"Sin datos para {depto}")
+    
+    # Ranking general
+    st.subheader("📋 Ranking General")
     df_display = df.copy()
     df_display["Posición"] = range(1, len(df) + 1)
     df_display["Total"] = df_display["Total"].apply(lambda x: f"{int(x):,}")
@@ -391,24 +442,14 @@ def page_ranking():
         hide_index=True
     )
     
-    # Gráficos
-    col1, col2 = st.columns(2)
-    with col1:
-        fig = px.bar(df, x="Empleado", y="Total", 
-                    color="Departamento",
-                    title="🔥 Ranking General",
-                    barmode="group")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        fig2 = px.scatter(df, x="Promedio", y="Total", 
-                         size="Registros", color="Departamento",
-                         hover_name="Empleado",
-                         title="Análisis de desempeño")
-        st.plotly_chart(fig2, use_container_width=True)
+    # Gráfico comparativo
+    fig = px.bar(df, x="Empleado", y="Total", color="Departamento",
+                 title="🔥 Ranking General por Departamento",
+                 barmode="group")
+    st.plotly_chart(fig, use_container_width=True)
 
 def page_usuarios():
-    st.title("👤 Gestión de Usuarios")
+    st.title("👤 Gestión de Usuarios AIS")
     
     tab1, tab2 = st.tabs(["➕ Crear usuario", "📋 Lista de usuarios"])
     
@@ -449,7 +490,7 @@ def page_usuarios():
             st.dataframe(df_users, use_container_width=True, hide_index=True)
 
 def page_empleados():
-    st.title("🧑‍💼 Gestión de Empleados")
+    st.title("🧑‍💼 Gestión de Empleados AIS")
     
     tab1, tab2 = st.tabs(["➕ Registrar empleado", "📋 Lista de empleados"])
     
@@ -460,11 +501,18 @@ def page_empleados():
                 name = st.text_input("Nombre completo", placeholder="Ej: Juan Pérez")
                 position = st.selectbox("Cargo", CARGOS)
             with col2:
-                department = st.selectbox("Departamento", DEPARTAMENTOS)
+                # Auto-seleccionar departamento basado en el cargo
+                department = CARGO_DEPARTAMENTO_MAP[position]
+                st.info(f"📌 Departamento asignado automáticamente: **{department}**")
                 goal = st.number_input("Meta mensual", value=300, min_value=1, step=50)
             
             # Selector de usuario
-            df_users = safe_dataframe("SELECT id, username FROM users WHERE role='empleado' AND id NOT IN (SELECT user_id FROM employees WHERE user_id IS NOT NULL)")
+            df_users = safe_dataframe("""
+                SELECT id, username FROM users 
+                WHERE role='empleado' AND id NOT IN (
+                    SELECT user_id FROM employees WHERE user_id IS NOT NULL
+                )
+            """)
             
             if not df_users.empty:
                 user_options = {row['username']: row['id'] for _, row in df_users.iterrows()}
@@ -502,29 +550,34 @@ def page_empleados():
             JOIN users u ON e.user_id = u.id
             LEFT JOIN sales s ON e.id = s.employee_id
             GROUP BY e.id
-            ORDER BY e.name
+            ORDER BY e.department, e.name
         """)
         
         if not df_emp.empty:
-            # Agregar columna de acciones
-            for idx, row in df_emp.iterrows():
-                with st.expander(f"👤 {row['name']} - {row['position']}"):
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.markdown(f"**Cargo:** {row['position']}")
-                        st.markdown(f"**Depto:** {row['department']}")
-                    with col2:
-                        st.markdown(f"**Meta:** {row['goal']} unidades")
-                        st.markdown(f"**Usuario:** {row['username']}")
-                    with col3:
-                        st.markdown(f"**Ventas:** {row['ventas_realizadas']} registros")
-                        
-                    if st.button("✏️ Editar", key=f"edit_{row['id']}"):
-                        st.session_state.editing_employee = row['id']
-                        st.rerun()
+            # Agrupar por departamento
+            for depto in DEPARTAMENTOS:
+                df_depto = df_emp[df_emp['department'] == depto]
+                if not df_depto.empty:
+                    with st.expander(f"📌 {depto} ({len(df_depto)} empleados)"):
+                        for _, row in df_depto.iterrows():
+                            badge_class = get_badge_class(row['position'])
+                            col1, col2, col3, col4 = st.columns([3,2,2,1])
+                            with col1:
+                                st.markdown(f"**{row['name']}**")
+                                st.markdown(f"<span class='badge {badge_class}'>{row['position']}</span>", unsafe_allow_html=True)
+                            with col2:
+                                st.markdown(f"🎯 Meta: {row['goal']}")
+                                st.markdown(f"📊 Ventas: {row['ventas_realizadas']}")
+                            with col3:
+                                st.markdown(f"👤 Usuario: {row['username']}")
+                            with col4:
+                                if st.button("✏️", key=f"edit_{row['id']}"):
+                                    st.session_state.editing_employee = row['id']
+                                    st.rerun()
+                            st.divider()
 
 def page_reportes():
-    st.title("📊 Reportes Avanzados")
+    st.title("📊 Reportes Avanzados AIS")
     
     tipo_reporte = st.selectbox(
         "Tipo de reporte",
@@ -537,7 +590,8 @@ def page_reportes():
                 e.department,
                 SUM(s.autoliquidable + s.oferta + s.marca + s.adicional) as total,
                 AVG(s.autoliquidable + s.oferta + s.marca + s.adicional) as promedio,
-                COUNT(DISTINCT e.id) as empleados
+                COUNT(DISTINCT e.id) as empleados,
+                COUNT(s.id) as transacciones
             FROM sales s
             JOIN employees e ON s.employee_id = e.id
             GROUP BY e.department
@@ -553,7 +607,7 @@ def page_reportes():
             with col2:
                 fig2 = px.bar(df, x='department', y='total',
                             title="Ventas por departamento",
-                            color='total')
+                            color='department')
                 st.plotly_chart(fig2, use_container_width=True)
             
             st.dataframe(df, use_container_width=True)
@@ -562,24 +616,25 @@ def page_reportes():
         df = safe_dataframe("""
             SELECT 
                 e.position,
+                e.department,
                 SUM(s.autoliquidable + s.oferta + s.marca + s.adicional) as total,
                 AVG(s.autoliquidable + s.oferta + s.marca + s.adicional) as promedio,
                 COUNT(DISTINCT e.id) as empleados
             FROM sales s
             JOIN employees e ON s.employee_id = e.id
-            GROUP BY e.position
+            GROUP BY e.position, e.department
             ORDER BY total DESC
         """)
         
         if not df.empty:
-            fig = px.bar(df, x='position', y='total',
+            fig = px.bar(df, x='position', y='total', color='department',
                         title="Ventas por cargo",
-                        color='total')
+                        barmode='group')
             st.plotly_chart(fig, use_container_width=True)
             st.dataframe(df, use_container_width=True)
 
 def page_registrar_ventas():
-    st.title("📝 Registro Diario de Ventas")
+    st.title("📝 Registro Diario de Ventas - AIS")
     
     # Verificar si el usuario tiene empleado asociado
     emp_info = get_employee_info(st.session_state.user["id"])
@@ -591,14 +646,16 @@ def page_registrar_ventas():
             st.rerun()
         return
     
+    badge_class = get_badge_class(emp_info[2])
+    
     # Mostrar información del empleado
     st.markdown(f"""
     <div class="card">
         <h4>Registrando para: {emp_info[1]}</h4>
         <p>
-            <span class="badge badge-cargo">{emp_info[2] or 'Sin cargo'}</span>
-            <span class="badge badge-depto">{emp_info[3] or 'Sin depto'}</span>
-            🎯 Meta: {emp_info[4]} unidades
+            <span class="badge {badge_class}">{emp_info[2]}</span>
+            <span class="badge badge-depto">{emp_info[3]}</span>
+            🎯 Meta mensual: {emp_info[4]} unidades
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -633,7 +690,6 @@ def page_registrar_ventas():
         total = aut + of + ma + ad
         
         # Calcular progreso de meta
-        # Obtener ventas del mes
         mes_actual = date.today().strftime("%Y-%m")
         conn = get_connection()
         cur = conn.cursor()
@@ -678,13 +734,15 @@ def page_registrar_ventas():
                 st.warning("⚠️ Debes ingresar al menos una unidad")
 
 def page_mi_desempeno():
-    st.title("📊 Mi Desempeño Personal")
+    st.title("📊 Mi Desempeño Personal - AIS")
     
     emp_info = get_employee_info(st.session_state.user["id"])
     
     if not emp_info:
         st.error("❌ No tienes un empleado asociado")
         return
+    
+    badge_class = get_badge_class(emp_info[2])
     
     # Selector de período
     periodo = st.selectbox(
@@ -769,24 +827,9 @@ def page_mi_desempeno():
         fig2 = px.pie(tipos, values='Cantidad', names='Tipo',
                      title="Distribución por tipo")
         st.plotly_chart(fig2, use_container_width=True)
-    
-    # Estadísticas por día de semana
-    df['dia_semana'] = df['date'].dt.day_name()
-    dias_orden = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    dias_espanol = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-    
-    df_dias = df.groupby('dia_semana')['total'].agg(['mean', 'sum', 'count']).reset_index()
-    df_dias['dia_semana'] = pd.Categorical(df_dias['dia_semana'], categories=dias_orden, ordered=True)
-    df_dias = df_dias.sort_values('dia_semana')
-    df_dias['dia'] = dias_espanol
-    
-    fig3 = px.bar(df_dias, x='dia', y='mean',
-                 title="Promedio de ventas por día",
-                 labels={'mean': 'Promedio', 'dia': 'Día'})
-    st.plotly_chart(fig3, use_container_width=True)
 
 def page_mi_perfil():
-    st.title("👤 Mi Perfil")
+    st.title("👤 Mi Perfil - AIS")
     
     emp_info = get_employee_info(st.session_state.user["id"])
     
@@ -796,7 +839,9 @@ def page_mi_perfil():
         with st.form("perfil_form"):
             name = st.text_input("Nombre completo", placeholder="Ej: Juan Pérez")
             position = st.selectbox("Cargo", CARGOS)
-            department = st.selectbox("Departamento", DEPARTAMENTOS)
+            # Auto-asignar departamento basado en cargo
+            department = CARGO_DEPARTAMENTO_MAP[position]
+            st.info(f"📌 Departamento asignado automáticamente: **{department}**")
             goal = st.number_input("Meta mensual", value=300, min_value=1, step=50)
             
             submitted = st.form_submit_button("Guardar perfil", type="primary", use_container_width=True)
@@ -817,25 +862,30 @@ def page_mi_perfil():
                 except Exception as e:
                     st.error(f"❌ Error al guardar: {e}")
     else:
+        badge_class = get_badge_class(emp_info[2])
         st.markdown(f"""
-        <div class="card">
-            <h3>{emp_info[1]}</h3>
-            <p><strong>Cargo:</strong> {emp_info[2]}</p>
-            <p><strong>Departamento:</strong> {emp_info[3]}</p>
-            <p><strong>Meta mensual:</strong> {emp_info[4]} unidades</p>
+        <div class="card" style="text-align: center;">
+            <h2>{emp_info[1]}</h2>
+            <p>
+                <span class="badge {badge_class}" style="font-size: 16px;">{emp_info[2]}</span>
+                <span class="badge badge-depto" style="font-size: 16px;">{emp_info[3]}</span>
+            </p>
+            <p class="metric">🎯 Meta: {emp_info[4]} unidades/mes</p>
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("✏️ Editar perfil"):
+        if st.button("✏️ Editar perfil", use_container_width=True):
             st.session_state.editing_profile = True
         
         if st.session_state.get('editing_profile', False):
             with st.form("editar_perfil"):
-                new_position = st.selectbox("Cargo", CARGOS, index=CARGOS.index(emp_info[2]) if emp_info[2] in CARGOS else 0)
-                new_department = st.selectbox("Departamento", DEPARTAMENTOS, index=DEPARTAMENTOS.index(emp_info[3]) if emp_info[3] in DEPARTAMENTOS else 0)
+                new_position = st.selectbox("Cargo", CARGOS, 
+                                          index=CARGOS.index(emp_info[2]) if emp_info[2] in CARGOS else 0)
+                new_department = CARGO_DEPARTAMENTO_MAP[new_position]
+                st.info(f"📌 Departamento: **{new_department}**")
                 new_goal = st.number_input("Meta mensual", value=emp_info[4], min_value=1, step=50)
                 
-                if st.form_submit_button("Actualizar"):
+                if st.form_submit_button("Actualizar perfil", type="primary"):
                     try:
                         conn = get_connection()
                         cur = conn.cursor()

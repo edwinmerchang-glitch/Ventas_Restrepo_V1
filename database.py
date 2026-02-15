@@ -24,8 +24,8 @@ def create_tables():
     CREATE TABLE IF NOT EXISTS employees (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
-        position TEXT,  -- Nuevo campo: cargo
-        department TEXT, -- Nuevo campo: departamento
+        position TEXT,
+        department TEXT,
         goal INTEGER DEFAULT 100,
         user_id INTEGER,
         FOREIGN KEY (user_id) REFERENCES users(id)
@@ -66,5 +66,6 @@ def migrate_database():
         
         conn.commit()
         conn.close()
+        print("Migración de base de datos completada exitosamente")
     except Exception as e:
         print(f"Error en migración: {e}")
