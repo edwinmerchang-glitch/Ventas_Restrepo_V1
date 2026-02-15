@@ -46,6 +46,9 @@ if not st.session_state.user:
             user = authenticate(u,p)
             if user:
                 st.session_state.user = user
+                st.rerun()
+
+                st.session_state.user = user
                 st.experimental_rerun()
             else:
                 st.error("Credenciales incorrectas")
