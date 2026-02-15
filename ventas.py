@@ -1120,12 +1120,368 @@ def page_reportes():
                         color='department')
             st.plotly_chart(fig, use_container_width=True)
 
+# ============= PIE DE PÁGINA =============
+def show_footer():
+    """Mostrar pie de página con información de la aplicación"""
+    
+    # Estilos adicionales para el footer
+    st.markdown("""
+    <style>
+    .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-align: center;
+        padding: 8px 0;
+        font-size: 13px;
+        z-index: 1000;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        margin-top: 20px;
+    }
+    
+    .footer-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .footer-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: white;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .footer-item:hover {
+        transform: translateY(-2px);
+        color: #ffd700;
+    }
+    
+    .footer-divider {
+        color: rgba(255,255,255,0.5);
+        font-weight: bold;
+        margin: 0 5px;
+    }
+    
+    /* Ajustar el padding inferior del contenido principal */
+    .main-content {
+        padding-bottom: 60px;
+    }
+    
+    /* Estilo para el separador del footer */
+    .footer-separator {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+        margin: 10px 0;
+        width: 100%;
+    }
+    
+    /* Tooltip para información adicional */
+    .footer-tooltip {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .footer-tooltip .tooltiptext {
+        visibility: hidden;
+        width: 200px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 8px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        pointer-events: none;
+    }
+    
+    .footer-tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+    </style>
+    
+    <div class="footer">
+        <div class="footer-separator"></div>
+        <div class="footer-content">
+            <span class="footer-item">
+                <span>🏥</span> Locatel Restrepo
+            </span>
+            
+            <span class="footer-divider">|</span>
+            
+            <span class="footer-item footer-tooltip">
+                <span>📅</span> 
+                <span id="current-date"></span>
+                <span class="tooltiptext">Fecha actual del sistema</span>
+            </span>
+            
+            <span class="footer-divider">|</span>
+            
+            <span class="footer-item">
+                <span>👥</span> Equipo AIS
+            </span>
+            
+            <span class="footer-divider">|</span>
+            
+            <span class="footer-item footer-tooltip">
+                <span>⚡</span> 
+                <span id="version">v2.0.0</span>
+                <span class="tooltiptext">Versión de la aplicación</span>
+            </span>
+            
+            <span class="footer-divider">|</span>
+            
+            <span class="footer-item">
+                <span>🛡️</span> 
+                <span>Sistema de Ventas</span>
+            </span>
+        </div>
+        <div style="font-size: 11px; margin-top: 3px; opacity: 0.8;">
+            © 2024 Locatel Restrepo - Todos los derechos reservados
+        </div>
+    </div>
+    
+    <script>
+    // Actualizar la fecha en el footer
+    const dateElement = document.getElementById('current-date');
+    if (dateElement) {
+        const now = new Date();
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        dateElement.textContent = now.toLocaleDateString('es-ES', options);
+    }
+    </script>
+    """, unsafe_allow_html=True)
+
+# Versión simplificada y más compacta del footer
+def show_footer_simple():
+    """Versión simplificada del pie de página"""
+    
+    # Verificar si el usuario está autenticado para mostrar info adicional
+    user_info = ""
+    if st.session_state.user:
+        role_icon = "👑" if st.session_state.user["role"] == "admin" else "👤"
+        user_info = f"{role_icon} {st.session_state.user['username']}"
+    
+    st.markdown(f"""
+    <style>
+    .footer-simple {{
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
+        color: white;
+        text-align: center;
+        padding: 8px 15px;
+        font-size: 12px;
+        z-index: 1000;
+        border-top: 2px solid #4f7cff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+    }}
+    
+    .footer-left, .footer-right {{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }}
+    
+    .footer-center {{
+        text-align: center;
+    }}
+    
+    .footer-badge {{
+        background: rgba(79, 124, 255, 0.3);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        border: 1px solid #4f7cff;
+    }}
+    
+    .footer-simple span {{
+        opacity: 0.9;
+        transition: opacity 0.3s;
+    }}
+    
+    .footer-simple span:hover {{
+        opacity: 1;
+    }}
+    </style>
+    
+    <div class="footer-simple">
+        <div class="footer-left">
+            <span>🏥 Locatel Restrepo</span>
+            <span class="footer-badge">AIS</span>
+        </div>
+        <div class="footer-center">
+            <span>© 2024 Sistema de Ventas - v2.0.0</span>
+        </div>
+        <div class="footer-right">
+            <span>{user_info}</span>
+            <span>📅 {datetime.now().strftime('%d/%m/%Y')}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# Versión con indicadores en tiempo real
+def show_footer_advanced():
+    """Versión avanzada del footer con estadísticas en tiempo real"""
+    
+    if not st.session_state.user:
+        return show_footer_simple()
+    
+    try:
+        # Obtener estadísticas rápidas para mostrar en el footer
+        if st.session_state.user["role"] == "admin":
+            # Estadísticas globales
+            ventas_hoy = execute_query("""
+                SELECT COUNT(*), SUM(autoliquidable + oferta + marca + adicional)
+                FROM sales WHERE date = ?
+            """, (str(date.today()),))
+            
+            ventas_count = ventas_hoy[0][0] if ventas_hoy else 0
+            ventas_total = ventas_hoy[0][1] if ventas_hoy and ventas_hoy[0][1] else 0
+            
+            stats = f"📊 Hoy: {ventas_count} ventas | {ventas_total} uni"
+        else:
+            # Estadísticas personales
+            emp_info = get_employee_info(st.session_state.user["id"])
+            if emp_info:
+                ventas_hoy = execute_query("""
+                    SELECT SUM(autoliquidable + oferta + marca + adicional)
+                    FROM sales WHERE employee_id = ? AND date = ?
+                """, (emp_info[0], str(date.today())))
+                
+                ventas_hoy_total = ventas_hoy[0][0] if ventas_hoy and ventas_hoy[0][0] else 0
+                stats = f"📊 Hoy: {ventas_hoy_total} uni | Meta: {emp_info[4]}"
+            else:
+                stats = "📊 Sin estadísticas"
+    except:
+        stats = "📊 Cargando..."
+    
+    st.markdown(f"""
+    <style>
+    .footer-advanced {{
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 20px;
+        font-size: 13px;
+        z-index: 1000;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255,255,255,0.2);
+    }}
+    
+    .footer-section {{
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }}
+    
+    .footer-logo {{
+        font-weight: bold;
+        font-size: 14px;
+        background: rgba(255,255,255,0.2);
+        padding: 3px 12px;
+        border-radius: 20px;
+        letter-spacing: 0.5px;
+    }}
+    
+    .footer-stats {{
+        background: rgba(0,0,0,0.2);
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }}
+    
+    .footer-link {{
+        color: white;
+        text-decoration: none;
+        margin: 0 5px;
+        opacity: 0.8;
+        transition: opacity 0.3s;
+    }}
+    
+    .footer-link:hover {{
+        opacity: 1;
+        text-decoration: underline;
+    }}
+    
+    .footer-version {{
+        font-size: 11px;
+        opacity: 0.7;
+        background: rgba(255,255,255,0.1);
+        padding: 2px 8px;
+        border-radius: 12px;
+    }}
+    </style>
+    
+    <div class="footer-advanced">
+        <div class="footer-section">
+            <span class="footer-logo">🏥 LOCATEL RESTREPO</span>
+            <span class="footer-stats">{stats}</span>
+        </div>
+        <div class="footer-section">
+            <span>⚡ AIS System</span>
+            <span class="footer-version">v2.0.0</span>
+        </div>
+        <div class="footer-section">
+            <a href="#" class="footer-link">Ayuda</a>
+            <span>|</span>
+            <a href="#" class="footer-link">Soporte</a>
+            <span>|</span>
+            <span>{datetime.now().strftime('%d/%m/%Y %H:%M')}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# Función para mostrar el footer según preferencia
+def show_footer_selector(version="advanced"):
+    """
+    Mostrar diferentes versiones del footer
+    version: "simple", "advanced", o "full"
+    """
+    if version == "simple":
+        show_footer_simple()
+    elif version == "advanced":
+        show_footer_advanced()
+    else:
+        show_footer()
+
 # ---------------- CONTROL PRINCIPAL ---------------- #
 def main():
     if not st.session_state.user:
         show_login()
     else:
         show_menu()
+        
+        # Agregar un contenedor para el contenido principal
+        st.markdown('<div class="main-content">', unsafe_allow_html=True)
         
         pages = {
             "Dashboard": page_dashboard,
@@ -1142,6 +1498,12 @@ def main():
             pages[st.session_state.page]()
         else:
             page_dashboard() if st.session_state.user["role"] == "admin" else page_registrar_ventas()
+        
+        # Cerrar el contenedor principal
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Mostrar el footer
+        show_footer_selector("advanced")  # Puedes cambiar a "simple" o "full"
 
 if __name__ == "__main__":
     main()
