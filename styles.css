@@ -1,19 +1,27 @@
 .main {
-    background: linear-gradient(120deg,#f4f6ff,#eef2ff);
+    background: linear-gradient(120deg, #f4f6ff, #eef2ff);
+    padding: 20px;
 }
 
 .card {
     background: white;
-    padding: 20px;
+    padding: 25px;
     border-radius: 18px;
-    box-shadow: 0px 4px 15px rgba(0,0,0,0.08);
-    margin-bottom: 15px;
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0px 12px 25px rgba(0,0,0,0.1);
 }
 
 .metric {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
     color: #3b5bfd;
+    margin: 10px 0;
 }
 
 .progress {
@@ -21,9 +29,97 @@
     background: #e9ecef;
     border-radius: 20px;
     overflow: hidden;
+    margin: 10px 0;
 }
 
 .progress-bar {
     height: 100%;
-    background: linear-gradient(90deg,#4f7cff,#7aa2ff);
+    background: linear-gradient(90deg, #4f7cff, #7aa2ff);
+    transition: width 0.3s ease;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 2px;
+}
+
+.badge-cargo {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.badge-depto {
+    background: #e8f5e8;
+    color: #2e7d32;
+}
+
+.stButton > button {
+    width: 100%;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #4f7cff, #7aa2ff);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 10px;
+    transition: all 0.2s;
+}
+
+.stButton > button:hover {
+    background: linear-gradient(90deg, #3b5bfd, #6b8aff);
+    box-shadow: 0 4px 10px rgba(75, 123, 255, 0.3);
+}
+
+.stButton > button[kind="secondary"] {
+    background: white;
+    color: #4f7cff;
+    border: 1px solid #4f7cff;
+}
+
+.stButton > button[kind="secondary"]:hover {
+    background: #f0f4ff;
+}
+
+/* Estilos para tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px 8px 0 0;
+    padding: 10px 20px;
+    background-color: white;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.css-1v0mbdj, .css-1r6slb0 {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Dashboard específico */
+.metric-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 10px 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .metric {
+        font-size: 24px;
+    }
+    
+    .card {
+        padding: 15px;
+    }
 }
