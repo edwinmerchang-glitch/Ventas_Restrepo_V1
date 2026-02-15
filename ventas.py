@@ -1447,7 +1447,7 @@ def show_footer_advanced():
             <span class="footer-stats">{stats}</span>
         </div>
         <div class="footer-section">
-            <span>⚡ AIS System</span>
+            <span>Creado por Edwin Merchan</span>
             <span class="footer-version">v2.0.0</span>
         </div>
         <div class="footer-section">
