@@ -5,8 +5,23 @@ from datetime import date
 from database import create_tables, get_connection
 from auth import authenticate, create_user
 
+def create_default_admin():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM users")
+    total_users = cur.fetchone()[0]
+
+    if total_users == 0:
+        create_user("admin", "admin123", "admin")
+
+    conn.close()
+
+
 st.set_page_config("Ventas PRO", layout="wide", page_icon="📊")
 create_tables()
+create_default_admin()
+
 
 def css():
     with open("styles.css") as f:
