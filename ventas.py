@@ -21,7 +21,7 @@ with st.spinner("🔄 Inicializando sistema..."):
         create_tables()
         migrate_database()
         verify_database()
-        st.success(f"✅ Base de datos lista: {DB_PATH}")
+        # No mostrar mensaje de éxito en producción
     except Exception as e:
         st.error(f"❌ Error inicializando base de datos: {e}")
         st.stop()
