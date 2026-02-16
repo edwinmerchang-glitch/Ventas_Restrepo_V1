@@ -270,43 +270,61 @@ def show_menu():
         transform: translateX(-100%);
     }
     
-    /* Ajustar el contenido principal cuando el sidebar está oculto */
-    .main-content {
-        margin-left: 0 !important;
-        transition: margin-left 0.3s ease-in-out;
+    /* Ocultar el botón nativo de Streamlit */
+    [data-testid="collapsedControl"] {
+        display: none !important;
     }
     
-    /* Badge de notificación para el botón hamburguesa */
-    .hamburger-badge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #ff4b4b;
+    /* Estilo para el indicador de keep-alive */
+    .keep-alive-indicator {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 8px 15px;
+        margin: 10px 0;
         color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
         font-size: 12px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        border: 2px solid white;
+        justify-content: space-between;
+        border: 1px solid rgba(255,255,255,0.2);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .keep-alive-pulse {
+        width: 10px;
+        height: 10px;
+        background: #4ade80;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+        margin-right: 8px;
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+        }
     }
     </style>
     """, unsafe_allow_html=True)
     
-    # Botón hamburguesa con lógica en session state
+    # Botón hamburguesa
     col1, col2, col3 = st.columns([1, 10, 1])
     with col1:
         if st.button("☰", key="hamburger_btn", help="Abrir menú"):
             st.session_state.sidebar_open = not st.session_state.get('sidebar_open', False)
             st.rerun()
     
-    # Inicializar estado del sidebar si no existe
+    # Inicializar estado del sidebar
     if 'sidebar_open' not in st.session_state:
         st.session_state.sidebar_open = False
     
-    # Overlay cuando el menú está abierto (para cerrar al hacer clic fuera)
+    # Overlay cuando el menú está abierto
     if st.session_state.sidebar_open:
         if st.button("", key="overlay_btn", help="Cerrar menú"):
             st.session_state.sidebar_open = False
@@ -316,7 +334,7 @@ def show_menu():
     # Mostrar sidebar solo si está abierto
     if st.session_state.sidebar_open:
         with st.sidebar:
-            # Botón de cerrar en el sidebar
+            # Botón de cerrar
             st.markdown("""
             <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
                 <button onclick="document.querySelector('[data-testid=stSidebar] [aria-expanded=false]').click()" 
@@ -326,6 +344,7 @@ def show_menu():
             </div>
             """, unsafe_allow_html=True)
             
+            # Logo
             st.markdown("""
             <div style="text-align: center; margin-bottom: 20px;">
                 <h1 style="color: #4f7cff; font-size: 28px; margin: 0;">LOCATEL</h1>
@@ -336,7 +355,6 @@ def show_menu():
             # Información del empleado
             emp_info = get_employee_info(st.session_state.user["id"])
             if emp_info:
-                badge_class = get_badge_class(emp_info[2])
                 st.markdown(f"""
                 <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                            border-radius: 15px; margin-bottom: 20px; color: white;">
@@ -355,7 +373,7 @@ def show_menu():
             
             st.divider()
             
-            # Opciones de menú según rol
+            # Opciones de menú
             if st.session_state.user["role"] == "admin":
                 menu_options = {
                     "📊 Dashboard": "Dashboard",
@@ -382,10 +400,36 @@ def show_menu():
                     type=btn_type
                 ):
                     st.session_state.page = page
-                    st.session_state.sidebar_open = False  # Cerrar menú al seleccionar
+                    st.session_state.sidebar_open = False
                     st.rerun()
             
             st.divider()
+            
+            # ===== INDICADOR KEEP-ALIVE MEJORADO =====
+            try:
+                from keep_alive import get_ping_count
+                ping_count = get_ping_count()
+                
+                st.markdown(f"""
+                <div class="keep-alive-indicator">
+                    <div style="display: flex; align-items: center;">
+                        <div class="keep-alive-pulse"></div>
+                        <span style="font-weight: 500;">Keep-alive activo</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 15px;">
+                        {ping_count} pings
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            except:
+                st.markdown("""
+                <div class="keep-alive-indicator">
+                    <div style="display: flex; align-items: center;">
+                        <div class="keep-alive-pulse"></div>
+                        <span>Keep-alive activo</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
             
             # Botón de cerrar sesión
             if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):

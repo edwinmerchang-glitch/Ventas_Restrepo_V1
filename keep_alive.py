@@ -1,80 +1,48 @@
-import requests
-import time
-import threading
+# keep_alive.py - Agrega esta función
+
 import streamlit as st
+import threading
+import time
 from datetime import datetime
-import logging
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Variable global para contar pings
+_ping_count = 0
+_last_ping = None
+_keep_alive_thread = None
+_keep_alive_running = False
 
-class KeepAlive:
-    def __init__(self):
-        self.last_ping = None
-        self.ping_count = 0
-        self.is_running = False
-        # IMPORTANTE: Cambia esta URL por la TUYA
-        self.app_url = "https://seguimiento-ventas-restrepo.streamlit.app/#ventas-equipo-locatel-restrepo"  # <--- CAMBIA ESTO
-        
-    def ping(self):
-        """Hacer ping a la aplicación"""
-        try:
-            response = requests.get(
-                self.app_url,
-                timeout=10,
-                headers={'User-Agent': 'KeepAliveBot/1.0'},
-                params={'_t': str(self.ping_count)}
-            )
-            
-            self.last_ping = datetime.now()
-            self.ping_count += 1
-            
-            logger.info(f"✅ Ping #{self.ping_count} - {self.last_ping.strftime('%H:%M:%S')}")
-            return True
-            
-        except Exception as e:
-            logger.warning(f"⚠️ Error en ping: {e}")
-            return False
-    
-    def ping_loop(self):
-        """Loop infinito de pings"""
-        while self.is_running:
-            self.ping()
-            time.sleep(600)  # 10 minutos
-    
-    def start(self):
-        """Iniciar el thread"""
-        if not self.is_running:
-            self.is_running = True
-            thread = threading.Thread(target=self.ping_loop, daemon=True)
-            thread.start()
-            logger.info("🚀 Keep-alive iniciado")
-            return True
-        return False
-    
-    def get_status(self):
-        """Obtener estado"""
-        status = {
-            'running': self.is_running,
-            'ping_count': self.ping_count,
-            'last_ping': self.last_ping.strftime('%H:%M:%S') if self.last_ping else None,
-        }
-        return status
-
-# Instancia global
-keep_alive = KeepAlive()
+def ping():
+    """Función que se ejecuta periódicamente para mantener la app activa"""
+    global _ping_count, _last_ping
+    while _keep_alive_running:
+        _ping_count += 1
+        _last_ping = datetime.now()
+        time.sleep(60)  # Ping cada minuto
 
 def init_keep_alive():
-    """Inicializar keep-alive"""
-    if 'keep_alive_initialized' not in st.session_state:
-        keep_alive.start()
-        st.session_state.keep_alive_initialized = True
-        logger.info("📡 Keep-alive inicializado")
+    """Inicializar el thread de keep-alive"""
+    global _keep_alive_thread, _keep_alive_running
+    if _keep_alive_thread is None or not _keep_alive_thread.is_alive():
+        _keep_alive_running = True
+        _keep_alive_thread = threading.Thread(target=ping, daemon=True)
+        _keep_alive_thread.start()
+
+def get_ping_count():
+    """Obtener el número de pings realizados"""
+    global _ping_count
+    return _ping_count
+
+def get_last_ping():
+    """Obtener la hora del último ping"""
+    global _last_ping
+    return _last_ping
 
 def render_keep_alive_status():
-    """Mostrar estado en la UI"""
-    if 'keep_alive_initialized' in st.session_state:
-        status = keep_alive.get_status()
-        if status['running']:
-            st.caption(f"📡 Keep-alive: {status['ping_count']} pings")
+    """Renderizar el estado del keep-alive en Streamlit"""
+    global _ping_count, _last_ping
+    
+    if _last_ping:
+        last_ping_str = _last_ping.strftime("%H:%M:%S")
+        st.caption(f"🔄 Keep-alive: {_ping_count} pings | Último: {last_ping_str}")
+    else:
+        st.caption("🔄 Keep-alive: Iniciando...")
