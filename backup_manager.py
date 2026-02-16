@@ -134,12 +134,25 @@ class BackupManager:
     
     def _get_file_size(self, file_path):
         """Obtener tamaño del archivo en formato legible"""
-        size_bytes = os.path.getsize(file_path)
-        for unit in ['B', 'KB', 'MB', 'GB']:
-            if size_bytes < 1024.0:
-                return f"{size_bytes:.2f} {unit}"
-            size_bytes /= 1024.0
-        return f"{size_bytes:.2f} TB"
+        try:
+            # Si es un objeto Path, convertirlo a string
+            if hasattr(file_path, '__fspath__') or isinstance(file_path, Path):
+                file_path = str(file_path)
+            
+            # Verificar si es un archivo que existe
+            if os.path.isfile(file_path):
+                size_bytes = os.path.getsize(file_path)
+            else:
+                # Si no es un archivo, asumimos que es un número (tamaño en bytes)
+                size_bytes = file_path if isinstance(file_path, (int, float)) else 0
+            
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size_bytes < 1024.0:
+                    return f"{size_bytes:.2f} {unit}"
+                size_bytes /= 1024.0
+            return f"{size_bytes:.2f} TB"
+        except Exception as e:
+            return "0 B"
     
     def list_backups(self):
         """Listar todos los backups disponibles"""
@@ -213,7 +226,7 @@ class BackupManager:
         
         return {
             "total_backups": len(backups),
-            "total_size": self._get_file_size(total_size),
+            "total_size": self._get_file_size(total_size),  # Ahora funciona porque pasamos un número
             "latest_backup": backups[0] if backups else None,
             "backup_dir": str(self.backup_dir)
         }
@@ -413,12 +426,15 @@ def render_backup_page():
                 import subprocess
                 import platform
                 
-                if platform.system() == "Windows":
-                    os.startfile(str(manager.backup_dir))
-                elif platform.system() == "Darwin":  # macOS
-                    subprocess.run(["open", str(manager.backup_dir)])
-                else:  # Linux
-                    subprocess.run(["xdg-open", str(manager.backup_dir)])
+                try:
+                    if platform.system() == "Windows":
+                        os.startfile(str(manager.backup_dir))
+                    elif platform.system() == "Darwin":  # macOS
+                        subprocess.run(["open", str(manager.backup_dir)])
+                    else:  # Linux
+                        subprocess.run(["xdg-open", str(manager.backup_dir)])
+                except:
+                    st.info("No se puede abrir la carpeta automáticamente")
         
         with col2:
             st.markdown("#### 🔧 Opciones avanzadas")
@@ -441,5 +457,4 @@ def render_backup_page():
             dias = st.number_input("Eliminar backups más antiguos de (días)", min_value=1, value=30)
             
             if st.button("🗑️ Limpiar backups antiguos", type="secondary"):
-                # Implementar limpieza
                 st.warning(f"¿Eliminar backups anteriores a {dias} días?")
