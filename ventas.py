@@ -461,8 +461,11 @@ def render_hamburger_header():
     
     # Obtener información del empleado si existe
     emp_info = None
+    username = "Invitado"
+    
     if st.session_state.user:
-        emp_info = get_employee_info(st.session_state.user["id"])
+        username = st.session_state.user.get('username', 'Usuario')
+        emp_info = get_employee_info(st.session_state.user.get('id'))
     
     # Header fijo
     st.markdown(f"""
@@ -478,13 +481,13 @@ def render_hamburger_header():
         </div>
         <div class="header-user">
             <span>👤</span>
-            <span>{st.session_state.user['username'] if st.session_state.user else 'Invitado'}</span>
+            <span>{username}</span>
         </div>
     </div>
     
-    <div class="menu-overlay {'show' if st.session_state.menu_open else ''}" onclick="toggleMenu()"></div>
+    <div class="menu-overlay {'show' if st.session_state.get('menu_open', False) else ''}" onclick="toggleMenu()"></div>
     
-    <div class="hamburger-menu {'open' if st.session_state.menu_open else ''}">
+    <div class="hamburger-menu {'open' if st.session_state.get('menu_open', False) else ''}">
     """, unsafe_allow_html=True)
     
     # Perfil en el menú
@@ -507,15 +510,15 @@ def render_hamburger_header():
         st.markdown(f"""
         <div class="menu-profile">
             <div class="menu-avatar">👤</div>
-            <div class="menu-name">{st.session_state.user['username']}</div>
+            <div class="menu-name">{username}</div>
             <div>
-                <span class="menu-badge badge-cargo-drogueria">{st.session_state.user['role']}</span>
+                <span class="menu-badge badge-cargo-drogueria">{st.session_state.user.get('role', 'empleado')}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
     
     # Opciones de menú según el rol
-    if st.session_state.user["role"] == "admin":
+    if st.session_state.user and st.session_state.user.get('role') == "admin":
         menu_options = {
             "📊 Dashboard": "Dashboard",
             "🏆 Ranking": "Ranking",
@@ -533,7 +536,7 @@ def render_hamburger_header():
     
     # Botones del menú
     for icon_label, page in menu_options.items():
-        is_active = st.session_state.page == page
+        is_active = st.session_state.get('page') == page
         icon = icon_label.split()[0]
         label = ' '.join(icon_label.split()[1:])
         
@@ -1419,6 +1422,10 @@ def page_reportes():
 
 def show_footer():
     """Mostrar pie de página simple"""
+    username = "Invitado"
+    if st.session_state.user:
+        username = st.session_state.user.get('username', 'Usuario')
+    
     st.markdown(f"""
     <style>
     .footer-simple {{
@@ -1467,7 +1474,7 @@ def show_footer():
             <span>© 2024 Sistema de Ventas - v2.0.0</span>
         </div>
         <div class="footer-right">
-            <span>👤 {st.session_state.user['username'] if st.session_state.user else 'Invitado'}</span>
+            <span>👤 {username}</span>
             <span>📅 {datetime.now().strftime('%d/%m/%Y')}</span>
         </div>
     </div>
