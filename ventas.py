@@ -214,19 +214,22 @@ def show_login():
 def show_menu():
     """Mostrar menú con botón hamburguesa que inicia cerrado"""
     
-    # Botón de hamburguesa personalizado en la parte superior izquierda
+    # CSS para el menú hamburguesa
     st.markdown("""
     <style>
-    /* Estilos para el botón hamburguesa */
-    .hamburger-btn {
+    /* Botón hamburguesa flotante */
+    .hamburger-btn-container {
         position: fixed;
-        top: 20px;
-        left: 20px;
-        z-index: 1001;
+        top: 15px;
+        left: 15px;
+        z-index: 1000;
+    }
+    
+    .hamburger-btn {
         background: #4f7cff;
         color: white;
         border: none;
-        border-radius: 8px;
+        border-radius: 10px;
         width: 45px;
         height: 45px;
         font-size: 24px;
@@ -234,15 +237,13 @@ def show_menu():
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 10px rgba(79, 124, 255, 0.3);
+        box-shadow: 0 4px 15px rgba(79, 124, 255, 0.4);
         transition: all 0.3s ease;
-        border: 1px solid rgba(255,255,255,0.2);
     }
     
     .hamburger-btn:hover {
         background: #3a5fd0;
-        transform: scale(1.05);
-        box-shadow: 0 6px 15px rgba(79, 124, 255, 0.4);
+        transform: scale(1.1);
     }
     
     /* Overlay cuando el menú está abierto */
@@ -253,180 +254,286 @@ def show_menu():
         right: 0;
         bottom: 0;
         background: rgba(0,0,0,0.5);
-        z-index: 999;
+        z-index: 998;
         backdrop-filter: blur(3px);
     }
     
-    /* Animación para el sidebar */
+    /* Estilo del sidebar */
     [data-testid="stSidebar"] {
         transition: transform 0.3s ease-in-out;
+        background: white;
+        box-shadow: 2px 0 20px rgba(0,0,0,0.1);
     }
     
     [data-testid="stSidebar"][aria-expanded="true"] {
-        transform: translateX(0);
+        transform: translateX(0) !important;
     }
     
     [data-testid="stSidebar"][aria-expanded="false"] {
-        transform: translateX(-100%);
+        transform: translateX(-100%) !important;
     }
     
-    /* Ocultar el botón nativo de Streamlit */
+    /* Ocultar botón nativo de Streamlit */
     [data-testid="collapsedControl"] {
         display: none !important;
     }
     
-    /* Estilo para el indicador de keep-alive */
-    .keep-alive-indicator {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 20px;
-        padding: 8px 15px;
-        margin: 10px 0;
-        color: white;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        border: 1px solid rgba(255,255,255,0.2);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    /* Contenedor del sidebar */
+    .sidebar-content {
+        padding: 20px 15px;
+        height: 100vh;
+        overflow-y: auto;
     }
     
-    .keep-alive-pulse {
+    /* Botón de cerrar en el sidebar */
+    .sidebar-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #666;
+        cursor: pointer;
+        z-index: 1001;
+    }
+    
+    .sidebar-close:hover {
+        color: #ff4b4b;
+    }
+    
+    /* Estilo para el indicador de keep-alive */
+    .keep-alive-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 12px 15px;
+        margin: 20px 0 10px 0;
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .keep-alive-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+    
+    .pulse-dot {
         width: 10px;
         height: 10px;
         background: #4ade80;
         border-radius: 50%;
         animation: pulse 2s infinite;
-        margin-right: 8px;
     }
     
     @keyframes pulse {
-        0% {
-            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
-        }
-        70% {
-            box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
-        }
-        100% {
-            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
-        }
+        0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    }
+    
+    .keep-alive-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        background: rgba(255,255,255,0.15);
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-top: 5px;
+    }
+    
+    .ping-badge {
+        background: rgba(255,255,255,0.25);
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    /* Botones del menú */
+    .stButton button {
+        font-weight: 500;
+        border-radius: 10px;
+        padding: 10px 15px;
+        transition: all 0.3s ease;
+        margin: 3px 0;
+    }
+    
+    .stButton button[kind="primary"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+    }
+    
+    .stButton button[kind="secondary"] {
+        background: white;
+        border: 1px solid #e0e0e0;
+        color: #333;
+    }
+    
+    .stButton button[kind="secondary"]:hover {
+        background: #f5f5f5;
+        border-color: #4f7cff;
+    }
+    
+    /* Tarjeta de usuario */
+    .user-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 20px 15px;
+        margin-bottom: 20px;
+        color: white;
+        text-align: center;
+    }
+    
+    .user-name {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 10px 0 5px 0;
+    }
+    
+    .user-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 4px 15px;
+        border-radius: 20px;
+        font-size: 13px;
+        display: inline-block;
+        margin: 2px;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .user-meta {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 10px;
+        font-size: 13px;
+        background: rgba(255,255,255,0.1);
+        padding: 8px;
+        border-radius: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
     
-    # Botón hamburguesa
+    # Botón hamburguesa flotante
     col1, col2, col3 = st.columns([1, 10, 1])
     with col1:
-        if st.button("☰", key="hamburger_btn", help="Abrir menú"):
+        if st.button("☰", key="hamburger_btn"):
             st.session_state.sidebar_open = not st.session_state.get('sidebar_open', False)
             st.rerun()
     
-    # Inicializar estado del sidebar
+    # Inicializar estado
     if 'sidebar_open' not in st.session_state:
         st.session_state.sidebar_open = False
     
-    # Overlay cuando el menú está abierto
+    # Overlay para cerrar menú haciendo clic fuera
     if st.session_state.sidebar_open:
-        if st.button("", key="overlay_btn", help="Cerrar menú"):
-            st.session_state.sidebar_open = False
-            st.rerun()
-        st.markdown('<div class="menu-overlay"></div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="menu-overlay" onclick="document.querySelector('[data-testid=stSidebar] button').click()"></div>
+        """, unsafe_allow_html=True)
     
-    # Mostrar sidebar solo si está abierto
+    # ===== SIDEBAR CON TODO EL CONTENIDO =====
     if st.session_state.sidebar_open:
         with st.sidebar:
-            # Botón de cerrar
-            st.markdown("""
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-                <button onclick="document.querySelector('[data-testid=stSidebar] [aria-expanded=false]').click()" 
-                        style="background: none; border: none; color: #666; font-size: 24px; cursor: pointer;">
-                    ✕
-                </button>
-            </div>
-            """, unsafe_allow_html=True)
+            # Botón de cerrar manual
+            col1, col2 = st.columns([6, 1])
+            with col2:
+                if st.button("✕", key="close_sidebar", help="Cerrar menú"):
+                    st.session_state.sidebar_open = False
+                    st.rerun()
             
             # Logo
             st.markdown("""
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="color: #4f7cff; font-size: 28px; margin: 0;">LOCATEL</h1>
-                <p style="color: #666; font-size: 12px;">Sistema de Ventas</p>
+            <div style="text-align: center; margin: 10px 0 20px 0;">
+                <h1 style="color: #4f7cff; font-size: 28px; margin: 0;">🏥 LOCATEL</h1>
+                <p style="color: #666; font-size: 12px;">Sistema de Gestión de Ventas</p>
             </div>
             """, unsafe_allow_html=True)
             
-            # Información del empleado
+            # Información del usuario (si es empleado)
             emp_info = get_employee_info(st.session_state.user["id"])
             if emp_info:
                 st.markdown(f"""
-                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                           border-radius: 15px; margin-bottom: 20px; color: white;">
-                    <h4 style="margin: 5px 0; color: white;">{emp_info[1]}</h4>
-                    <p style="margin: 2px 0;">
-                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; 
-                                   font-size: 12px; border: 1px solid rgba(255,255,255,0.3);">
-                            {emp_info[2] or 'Sin cargo'}
-                        </span>
-                    </p>
-                    <p style="margin: 2px 0; font-size: 13px;">
-                        📍 {emp_info[3] or 'Sin depto'} | 🎯 {emp_info[4]} uni
-                    </p>
+                <div class="user-card">
+                    <div style="font-size: 40px; margin-bottom: 5px;">👤</div>
+                    <div class="user-name">{emp_info[1]}</div>
+                    <div>
+                        <span class="user-badge">{emp_info[2] or 'Sin cargo'}</span>
+                        <span class="user-badge">{emp_info[3] or 'Sin depto'}</span>
+                    </div>
+                    <div class="user-meta">
+                        <span>🎯 Meta: {emp_info[4]} uni</span>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
             
             st.divider()
             
-            # Opciones de menú
-            if st.session_state.user["role"] == "admin":
-                menu_options = {
-                    "📊 Dashboard": "Dashboard",
-                    "🏆 Ranking": "Ranking",
-                    "🧑‍💼 Empleados": "Empleados",
-                    "👥 Usuarios": "Usuarios",
-                    "📊 Reportes": "Reportes"
-                }
-            else:
-                menu_options = {
-                    "📝 Registrar": "Registrar ventas",
-                    "📈 Mi Desempeño": "Mi desempeño",
-                    "👤 Mi perfil": "Mi perfil",
-                    "🏆 Ranking": "Ranking"
-                }
+            # ===== MENÚ DE NAVEGACIÓN =====
+            st.markdown("### 📍 Navegación")
             
-            # Botones del menú
-            for label, page in menu_options.items():
-                btn_type = "primary" if st.session_state.page == page else "secondary"
+            if st.session_state.user["role"] == "admin":
+                menu_items = [
+                    ("📊 Dashboard", "Dashboard"),
+                    ("🏆 Ranking", "Ranking"),
+                    ("🧑‍💼 Empleados", "Empleados"),
+                    ("👥 Usuarios", "Usuarios"),
+                    ("📊 Reportes", "Reportes")
+                ]
+            else:
+                menu_items = [
+                    ("📝 Registrar ventas", "Registrar ventas"),
+                    ("📈 Mi Desempeño", "Mi desempeño"),
+                    ("👤 Mi perfil", "Mi perfil"),
+                    ("🏆 Ranking", "Ranking")
+                ]
+            
+            for label, page in menu_items:
                 if st.button(
-                    label, 
-                    key=f"menu_{page}",
+                    label,
+                    key=f"nav_{page}",
                     use_container_width=True,
-                    type=btn_type
+                    type="primary" if st.session_state.page == page else "secondary"
                 ):
                     st.session_state.page = page
-                    st.session_state.sidebar_open = False
+                    st.session_state.sidebar_open = False  # Cerrar menú al navegar
                     st.rerun()
             
             st.divider()
             
-            # ===== INDICADOR KEEP-ALIVE MEJORADO =====
+            # ===== INDICADOR KEEP-ALIVE =====
             try:
-                from keep_alive import get_ping_count
+                from keep_alive import get_ping_count, get_last_ping
                 ping_count = get_ping_count()
+                last_ping = get_last_ping()
+                
+                last_ping_str = last_ping.strftime("%H:%M:%S") if last_ping else "Iniciando..."
                 
                 st.markdown(f"""
-                <div class="keep-alive-indicator">
-                    <div style="display: flex; align-items: center;">
-                        <div class="keep-alive-pulse"></div>
-                        <span style="font-weight: 500;">Keep-alive activo</span>
+                <div class="keep-alive-card">
+                    <div class="keep-alive-header">
+                        <div class="pulse-dot"></div>
+                        <span>🔄 Sistema activo</span>
                     </div>
-                    <div style="background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 15px;">
-                        {ping_count} pings
+                    <div class="keep-alive-stats">
+                        <span>📊 Pings realizados</span>
+                        <span class="ping-badge">{ping_count}</span>
+                    </div>
+                    <div class="keep-alive-stats" style="margin-top: 5px;">
+                        <span>⏱️ Último ping</span>
+                        <span class="ping-badge">{last_ping_str}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-            except:
+            except Exception as e:
                 st.markdown("""
-                <div class="keep-alive-indicator">
-                    <div style="display: flex; align-items: center;">
-                        <div class="keep-alive-pulse"></div>
-                        <span>Keep-alive activo</span>
+                <div class="keep-alive-card">
+                    <div class="keep-alive-header">
+                        <div class="pulse-dot"></div>
+                        <span>🔄 Sistema activo</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1642,7 +1749,7 @@ def show_footer_selector(version="advanced"):
 
 # ---------------- CONTROL PRINCIPAL ---------------- #
 def main():
-    # NUEVO: Inicializar keep-alive
+    # Inicializar keep-alive
     init_keep_alive()
     
     # Asegurar que el sidebar inicie cerrado
@@ -1652,10 +1759,10 @@ def main():
     if not st.session_state.user:
         show_login()
     else:
-        show_menu()
+        show_menu()  # Esta función ya contiene TODO (menú + keep-alive)
         
-        # Agregar un contenedor para el contenido principal con padding para el botón
-        st.markdown('<div class="main-content" style="padding-top: 20px;">', unsafe_allow_html=True)
+        # Contenido principal
+        st.markdown('<div style="padding: 20px;">', unsafe_allow_html=True)
         
         pages = {
             "Dashboard": page_dashboard,
@@ -1673,15 +1780,9 @@ def main():
         else:
             page_dashboard() if st.session_state.user["role"] == "admin" else page_registrar_ventas()
         
-        # Cerrar el contenedor principal
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Mostrar estado del keep-alive
-        with st.sidebar:
-            st.divider()
-            render_keep_alive_status()
-        
-        # Mostrar el footer
+        # Footer
         show_footer_selector("advanced")
 
 if __name__ == "__main__":
