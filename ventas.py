@@ -14,7 +14,7 @@ st.set_page_config(
     "Ventas Equipo Locatel Restrepo", 
     layout="wide", 
     page_icon="",
-    initial_sidebar_state="collapsed"  # Mantener collapsed para que el sidebar nativo no se vea
+    initial_sidebar_state="expanded"
 )
 
 # Verificar y crear base de datos al inicio
@@ -23,6 +23,7 @@ with st.spinner("🔄 Inicializando sistema..."):
         create_tables()
         migrate_database()
         verify_database()
+        # No mostrar mensaje de éxito en producción
     except Exception as e:
         st.error(f"❌ Error inicializando base de datos: {e}")
         st.stop()
@@ -67,253 +68,6 @@ def load_css():
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
         pass
-    
-    # CSS para el menú hamburguesa personalizado
-    st.markdown("""
-    <style>
-    /* Ocultar el sidebar nativo de Streamlit completamente */
-    [data-testid="stSidebar"] {
-        display: none;
-    }
-    
-    [data-testid="stSidebarCollapsedControl"] {
-        display: none;
-    }
-    
-    /* Estilos para el header con menú hamburguesa */
-    .hamburger-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 10px 20px;
-        color: white;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 9999;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    
-    .hamburger-logo {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-    
-    .hamburger-btn {
-        font-size: 28px;
-        cursor: pointer;
-        background: rgba(255,255,255,0.2);
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-        border: 2px solid rgba(255,255,255,0.3);
-    }
-    
-    .hamburger-btn:hover {
-        background: rgba(255,255,255,0.3);
-        transform: scale(1.1);
-        border-color: white;
-    }
-    
-    .header-title {
-        font-size: 18px;
-        font-weight: bold;
-    }
-    
-    .header-subtitle {
-        font-size: 12px;
-        opacity: 0.9;
-    }
-    
-    .header-user {
-        background: rgba(255,255,255,0.2);
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    /* Menú desplegable */
-    .hamburger-menu {
-        position: fixed;
-        top: 70px;
-        left: -300px;
-        width: 280px;
-        height: calc(100vh - 70px);
-        background: white;
-        box-shadow: 2px 0 15px rgba(0,0,0,0.2);
-        transition: left 0.3s ease;
-        z-index: 9998;
-        overflow-y: auto;
-        padding: 20px 0;
-    }
-    
-    .hamburger-menu.open {
-        left: 0;
-    }
-    
-    .menu-overlay {
-        position: fixed;
-        top: 70px;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        display: none;
-        z-index: 9997;
-    }
-    
-    .menu-overlay.show {
-        display: block;
-    }
-    
-    /* Perfil en el menú */
-    .menu-profile {
-        text-align: center;
-        padding: 20px;
-        border-bottom: 1px solid #eef2f6;
-        margin-bottom: 15px;
-    }
-    
-    .menu-avatar {
-        font-size: 50px;
-        margin-bottom: 10px;
-    }
-    
-    .menu-name {
-        font-size: 18px;
-        font-weight: bold;
-        color: #1e293b;
-        margin-bottom: 5px;
-    }
-    
-    .menu-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        margin: 2px;
-    }
-    
-    /* Opciones del menú */
-    .menu-item {
-        padding: 12px 20px;
-        margin: 5px 10px;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        color: #1e293b;
-        font-size: 15px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        border: none;
-        background: none;
-        width: calc(100% - 20px);
-        text-align: left;
-    }
-    
-    .menu-item:hover {
-        background: #f0f4ff;
-        transform: translateX(5px);
-    }
-    
-    .menu-item.active {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        font-weight: bold;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-    }
-    
-    .menu-icon {
-        font-size: 20px;
-        width: 30px;
-    }
-    
-    .menu-divider {
-        height: 1px;
-        background: #eef2f6;
-        margin: 15px 10px;
-    }
-    
-    .logout-btn {
-        background: #fee2e2;
-        color: #dc2626;
-        border: none;
-        padding: 12px 20px;
-        margin: 5px 10px;
-        border-radius: 10px;
-        cursor: pointer;
-        width: calc(100% - 20px);
-        text-align: left;
-        font-size: 15px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        transition: all 0.3s ease;
-    }
-    
-    .logout-btn:hover {
-        background: #fecaca;
-        transform: translateX(5px);
-    }
-    
-    /* Ajuste del contenido principal */
-    .main-content {
-        margin-top: 70px;
-        padding: 20px;
-    }
-    
-    /* Badges de cargo */
-    .badge-cargo-drogueria {
-        background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-        color: white;
-    }
-    
-    .badge-cargo-equipos {
-        background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
-        color: white;
-    }
-    
-    .badge-cargo-pasillos {
-        background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
-        color: white;
-    }
-    
-    .badge-cargo-cajas {
-        background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
-        color: white;
-    }
-    
-    .badge-depto {
-        background: #64748B;
-        color: white;
-    }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-        .header-title {
-            font-size: 14px;
-        }
-        .header-user span {
-            display: none;
-        }
-        .hamburger-menu {
-            width: 85%;
-        }
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
 load_css()
 
@@ -322,8 +76,6 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "page" not in st.session_state:
     st.session_state.page = "Dashboard" if st.session_state.user else "Login"
-if "menu_open" not in st.session_state:
-    st.session_state.menu_open = False
 
 # ---------------- FUNCIONES DE UTILIDAD ---------------- #
 @st.cache_data(ttl=60)
@@ -434,6 +186,7 @@ def show_login():
             p = st.text_input("Contraseña", type="password", placeholder="********")
             
             if st.button("Ingresar", use_container_width=True, type="primary"):
+                # ... lógica de autenticación ...
                 if u and p:
                     user = authenticate(u, p)
                     if user:
@@ -455,136 +208,73 @@ def show_login():
             
             st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------- MENÚ HAMBURGUESA PERSONALIZADO ---------------- #
-def render_hamburger_header():
-    """Renderizar el header con botón hamburguesa"""
-    
-    # Obtener información del empleado si existe
-    emp_info = None
-    username = "Invitado"
-    
-    if st.session_state.user:
-        username = st.session_state.user.get('username', 'Usuario')
-        emp_info = get_employee_info(st.session_state.user.get('id'))
-    
-    # Header fijo
-    st.markdown(f"""
-    <div class="hamburger-header">
-        <div class="hamburger-logo">
-            <div class="hamburger-btn" onclick="toggleMenu()">
-                ☰
-            </div>
-            <div>
-                <div class="header-title">LOCATEL RESTREPO</div>
-                <div class="header-subtitle">Sistema de Ventas</div>
-            </div>
-        </div>
-        <div class="header-user">
-            <span>👤</span>
-            <span>{username}</span>
-        </div>
-    </div>
-    
-    <div class="menu-overlay {'show' if st.session_state.get('menu_open', False) else ''}" onclick="toggleMenu()"></div>
-    
-    <div class="hamburger-menu {'open' if st.session_state.get('menu_open', False) else ''}">
-    """, unsafe_allow_html=True)
-    
-    # Perfil en el menú
-    if emp_info:
-        badge_class = get_badge_class(emp_info[2])
-        st.markdown(f"""
-        <div class="menu-profile">
-            <div class="menu-avatar">👤</div>
-            <div class="menu-name">{emp_info[1]}</div>
-            <div>
-                <span class="menu-badge {badge_class}">{emp_info[2] or 'Sin cargo'}</span>
-                <span class="menu-badge badge-depto">{emp_info[3] or 'Sin depto'}</span>
-            </div>
-            <div style="margin-top: 8px; font-size: 13px; color: #666;">
-                🎯 Meta: {emp_info[4]} unidades
-            </div>
+# ---------------- MENÚ ---------------- #
+def show_menu():
+    """Mostrar menú con botones"""
+    with st.sidebar:
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #4f7cff; font-size: 32px; margin: 0;">LOCATEL RESTREPO</h1>
+            <p style="color: #666; font-size: 14px;">Sistema de Ventas</p>
         </div>
         """, unsafe_allow_html=True)
-    elif st.session_state.user:
-        st.markdown(f"""
-        <div class="menu-profile">
-            <div class="menu-avatar">👤</div>
-            <div class="menu-name">{username}</div>
-            <div>
-                <span class="menu-badge badge-cargo-drogueria">{st.session_state.user.get('role', 'empleado')}</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Opciones de menú según el rol
-    if st.session_state.user and st.session_state.user.get('role') == "admin":
-        menu_options = {
-            "📊 Dashboard": "Dashboard",
-            "🏆 Ranking": "Ranking",
-            "🧑‍💼 Empleados": "Empleados",
-            "👥 Usuarios": "Usuarios",
-            "📊 Reportes": "Reportes"
-        }
-    else:
-        menu_options = {
-            "📝 Registrar": "Registrar ventas",
-            "📈 Mi Desempeño": "Mi desempeño",
-            "👤 Mi perfil": "Mi perfil",
-            "🏆 Ranking": "Ranking"
-        }
-    
-    # Botones del menú
-    for icon_label, page in menu_options.items():
-        is_active = st.session_state.get('page') == page
-        icon = icon_label.split()[0]
-        label = ' '.join(icon_label.split()[1:])
         
-        if st.button(
-            f"{icon} {label}",
-            key=f"menu_{page}",
-            use_container_width=True,
-            type="primary" if is_active else "secondary"
-        ):
-            st.session_state.page = page
-            st.session_state.menu_open = False
+        emp_info = get_employee_info(st.session_state.user["id"])
+        if emp_info:
+            badge_class = get_badge_class(emp_info[2])
+            st.markdown(f"""
+            <div style="text-align: center; padding: 10px; background: white; border-radius: 10px; margin-bottom: 15px;">
+                <h4 style="margin: 5px 0;">{emp_info[1]}</h4>
+                <p style="margin: 2px 0;">
+                    <span class="badge {badge_class}">{emp_info[2] or 'Sin cargo'}</span>
+                </p>
+                <p style="margin: 2px 0;">
+                    <span class="badge badge-depto">{emp_info[3] or 'Sin depto'}</span>
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.divider()
+        
+        if st.session_state.user["role"] == "admin":
+            menu_options = {
+                "📊 Dashboard": "Dashboard",
+                "🏆 Ranking": "Ranking",
+                "🧑‍💼 Empleados": "Empleados",
+                "👥 Usuarios": "Usuarios",
+                "📊 Reportes": "Reportes"
+            }
+        else:
+            menu_options = {
+                "📝 Registrar": "Registrar ventas",
+                "📈 Mi Desempeño": "Mi desempeño",
+                "👤 Mi perfil": "Mi perfil",
+                "🏆 Ranking": "Ranking"
+            }
+        
+        for label, page in menu_options.items():
+            if st.button(
+                label, 
+                key=f"menu_{page}",
+                use_container_width=True,
+                type="secondary" if st.session_state.page != page else "primary"
+            ):
+                st.session_state.page = page
+                st.rerun()
+        
+        st.divider()
+        
+        if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):
+            st.session_state.clear()
+            st.cache_data.clear()
             st.rerun()
-    
-    st.markdown('<div class="menu-divider"></div>', unsafe_allow_html=True)
-    
-    # Botón de cerrar sesión
-    if st.button("🚪 Cerrar Sesión", key="logout_btn", use_container_width=True):
-        st.session_state.clear()
-        st.cache_data.clear()
-        st.rerun()
-    
-    # Información adicional
-    st.markdown(f"""
-    <div style="padding: 15px; text-align: center; color: #666; font-size: 12px;">
-        📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}
-    </div>
-    
-    </div> <!-- Cierre del menú -->
-    
-    <script>
-    function toggleMenu() {{
-        const menu = document.querySelector('.hamburger-menu');
-        const overlay = document.querySelector('.menu-overlay');
-        menu.classList.toggle('open');
-        overlay.classList.toggle('show');
-    }}
-    
-    // Cerrar menú al hacer clic en un enlace
-    document.querySelectorAll('.menu-item').forEach(item => {{
-        item.addEventListener('click', () => {{
-            document.querySelector('.hamburger-menu').classList.remove('open');
-            document.querySelector('.menu-overlay').classList.remove('show');
-        }});
-    }});
-    </script>
-    """, unsafe_allow_html=True)
+        
+        #st.divider()
+        #st.caption(f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
-# ---------------- PÁGINAS (se mantienen igual) ---------------- #
+# ============= NUEVA PÁGINA DE EMPLEADOS (primero empleado) =============
+# ... (todo el código anterior se mantiene igual hasta la página de empleados)
+
 def page_empleados():
     st.title("🧑‍💼 Gestión de Empleados AIS")
     
@@ -898,6 +588,7 @@ def page_empleados():
                     else:
                         st.info("👤 Este empleado no tiene usuario asignado")
 
+# ============= PÁGINA DE USUARIOS (simplificada) =============
 def page_usuarios():
     st.title("👤 Gestión de Usuarios AIS")
     
@@ -956,6 +647,7 @@ def page_usuarios():
         else:
             st.info("No hay usuarios para modificar")
     
+    # ===== NUEVA PESTAÑA: EDITAR/ELIMINAR USUARIOS =====
     with tab3:
         st.subheader("✏️ Editar o Eliminar Usuarios")
         
@@ -967,6 +659,7 @@ def page_usuarios():
         </div>
         """, unsafe_allow_html=True)
         
+        # Obtener todos los usuarios
         todos_usuarios = execute_query("""
             SELECT 
                 u.id, 
@@ -982,6 +675,7 @@ def page_usuarios():
         if not todos_usuarios:
             st.info("📭 No hay usuarios para editar")
         else:
+            # Crear opciones para el selector
             usuario_options = {}
             for user in todos_usuarios:
                 empleado_info = f" (Empleado: {user[3]})" if user[3] else " (Sin empleado)"
@@ -995,6 +689,7 @@ def page_usuarios():
             )
             usuario_id = usuario_options[selected_display]
             
+            # Obtener datos del usuario seleccionado
             usuario_data = next((user for user in todos_usuarios if user[0] == usuario_id), None)
             
             if usuario_data:
@@ -1003,6 +698,7 @@ def page_usuarios():
                 with col1:
                     st.markdown("### 📝 Editar información")
                     
+                    # No permitir editar admin por defecto
                     if usuario_data[1] == "admin":
                         st.warning("⚠️ El usuario 'admin' no se puede modificar")
                     else:
@@ -1019,6 +715,7 @@ def page_usuarios():
                             
                             if submitted_edit:
                                 if new_username:
+                                    # Verificar si el nuevo username ya existe (y no es el mismo usuario)
                                     check_query = "SELECT id FROM users WHERE username = ? AND id != ?"
                                     check_result = execute_query(check_query, (new_username, usuario_id))
                                     
@@ -1038,11 +735,14 @@ def page_usuarios():
                                     st.warning("⚠️ El nombre de usuario no puede estar vacío")
                             
                             if submitted_delete:
-                                if usuario_data[3]:
+                                # Verificar si el usuario tiene empleado asociado
+                                if usuario_data[3]:  # Tiene empleado
                                     st.error("❌ No se puede eliminar: el usuario tiene un empleado asociado")
                                 else:
+                                    # Confirmar eliminación
                                     st.session_state.confirmar_eliminar_usuario = usuario_id
                         
+                        # Mostrar confirmación fuera del formulario
                         if 'confirmar_eliminar_usuario' in st.session_state and st.session_state.confirmar_eliminar_usuario == usuario_id:
                             st.warning(f"⚠️ ¿Estás seguro de eliminar el usuario '{usuario_data[1]}'?")
                             col_confirm1, col_confirm2 = st.columns(2)
@@ -1064,6 +764,7 @@ def page_usuarios():
                 
                 with col2:
                     st.markdown("### ℹ️ Información")
+                    
                     st.markdown(f"""
                     **ID:** {usuario_data[0]}
                     
@@ -1077,6 +778,7 @@ def page_usuarios():
                     else:
                         st.info("👤 Usuario sin empleado")
 
+# Las demás páginas se mantienen igual...
 def page_dashboard():
     st.title("📊 Dashboard de ventas")
     
@@ -1420,11 +1122,163 @@ def page_reportes():
                         color='department')
             st.plotly_chart(fig, use_container_width=True)
 
+# ============= PIE DE PÁGINA =============
 def show_footer():
-    """Mostrar pie de página simple"""
-    username = "Invitado"
+    """Mostrar pie de página con información de la aplicación"""
+    
+    # Estilos adicionales para el footer
+    st.markdown("""
+    <style>
+    .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-align: center;
+        padding: 8px 0;
+        font-size: 13px;
+        z-index: 1000;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        margin-top: 20px;
+    }
+    
+    .footer-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .footer-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: white;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .footer-item:hover {
+        transform: translateY(-2px);
+        color: #ffd700;
+    }
+    
+    .footer-divider {
+        color: rgba(255,255,255,0.5);
+        font-weight: bold;
+        margin: 0 5px;
+    }
+    
+    /* Ajustar el padding inferior del contenido principal */
+    .main-content {
+        padding-bottom: 60px;
+    }
+    
+    /* Estilo para el separador del footer */
+    .footer-separator {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+        margin: 10px 0;
+        width: 100%;
+    }
+    
+    /* Tooltip para información adicional */
+    .footer-tooltip {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .footer-tooltip .tooltiptext {
+        visibility: hidden;
+        width: 200px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 8px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        pointer-events: none;
+    }
+    
+    .footer-tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+    </style>
+    
+    <div class="footer">
+        <div class="footer-separator"></div>
+        <div class="footer-content">
+            <span class="footer-item">
+                <span>🏥</span> Locatel Restrepo
+            </span>
+            
+            <span class="footer-divider">|</span>
+            
+            <span class="footer-item footer-tooltip">
+                <span>📅</span> 
+                <span id="current-date"></span>
+                <span class="tooltiptext">Fecha actual del sistema</span>
+            </span>
+            
+            <span class="footer-divider">|</span>
+            
+            <span class="footer-item">
+                <span>👥</span> Equipo AIS
+            </span>
+            
+            <span class="footer-divider">|</span>
+            
+            <span class="footer-item footer-tooltip">
+                <span>⚡</span> 
+                <span id="version">v2.0.0</span>
+                <span class="tooltiptext">Versión de la aplicación</span>
+            </span>
+            
+            <span class="footer-divider">|</span>
+            
+            <span class="footer-item">
+                <span>🛡️</span> 
+                <span>Sistema de Ventas</span>
+            </span>
+        </div>
+        <div style="font-size: 11px; margin-top: 3px; opacity: 0.8;">
+            © 2024 Locatel Restrepo - Todos los derechos reservados
+        </div>
+    </div>
+    
+    <script>
+    // Actualizar la fecha en el footer
+    const dateElement = document.getElementById('current-date');
+    if (dateElement) {
+        const now = new Date();
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        dateElement.textContent = now.toLocaleDateString('es-ES', options);
+    }
+    </script>
+    """, unsafe_allow_html=True)
+
+# Versión simplificada y más compacta del footer
+def show_footer_simple():
+    """Versión simplificada del pie de página"""
+    
+    # Verificar si el usuario está autenticado para mostrar info adicional
+    user_info = ""
     if st.session_state.user:
-        username = st.session_state.user.get('username', 'Usuario')
+        role_icon = "👑" if st.session_state.user["role"] == "admin" else "👤"
+        user_info = f"{role_icon} {st.session_state.user['username']}"
     
     st.markdown(f"""
     <style>
@@ -1463,6 +1317,15 @@ def show_footer():
         font-size: 11px;
         border: 1px solid #4f7cff;
     }}
+    
+    .footer-simple span {{
+        opacity: 0.9;
+        transition: opacity 0.3s;
+    }}
+    
+    .footer-simple span:hover {{
+        opacity: 1;
+    }}
     </style>
     
     <div class="footer-simple">
@@ -1474,24 +1337,155 @@ def show_footer():
             <span>© 2024 Sistema de Ventas - v2.0.0</span>
         </div>
         <div class="footer-right">
-            <span>👤 {username}</span>
+            <span>{user_info}</span>
             <span>📅 {datetime.now().strftime('%d/%m/%Y')}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
+# Versión con indicadores en tiempo real
+def show_footer_advanced():
+    """Versión avanzada del footer con estadísticas en tiempo real"""
+    
+    if not st.session_state.user:
+        return show_footer_simple()
+    
+    try:
+        # Obtener estadísticas rápidas para mostrar en el footer
+        if st.session_state.user["role"] == "admin":
+            # Estadísticas globales
+            ventas_hoy = execute_query("""
+                SELECT COUNT(*), SUM(autoliquidable + oferta + marca + adicional)
+                FROM sales WHERE date = ?
+            """, (str(date.today()),))
+            
+            ventas_count = ventas_hoy[0][0] if ventas_hoy else 0
+            ventas_total = ventas_hoy[0][1] if ventas_hoy and ventas_hoy[0][1] else 0
+            
+            stats = f"📊 Hoy: {ventas_count} ventas | {ventas_total} uni"
+        else:
+            # Estadísticas personales
+            emp_info = get_employee_info(st.session_state.user["id"])
+            if emp_info:
+                ventas_hoy = execute_query("""
+                    SELECT SUM(autoliquidable + oferta + marca + adicional)
+                    FROM sales WHERE employee_id = ? AND date = ?
+                """, (emp_info[0], str(date.today())))
+                
+                ventas_hoy_total = ventas_hoy[0][0] if ventas_hoy and ventas_hoy[0][0] else 0
+                stats = f"📊 Hoy: {ventas_hoy_total} uni | Meta: {emp_info[4]}"
+            else:
+                stats = "📊 Sin estadísticas"
+    except:
+        stats = "📊 Cargando..."
+    
+    st.markdown(f"""
+    <style>
+    .footer-advanced {{
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 20px;
+        font-size: 13px;
+        z-index: 1000;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255,255,255,0.2);
+    }}
+    
+    .footer-section {{
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }}
+    
+    .footer-logo {{
+        font-weight: bold;
+        font-size: 14px;
+        background: rgba(255,255,255,0.2);
+        padding: 3px 12px;
+        border-radius: 20px;
+        letter-spacing: 0.5px;
+    }}
+    
+    .footer-stats {{
+        background: rgba(0,0,0,0.2);
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }}
+    
+    .footer-link {{
+        color: white;
+        text-decoration: none;
+        margin: 0 5px;
+        opacity: 0.8;
+        transition: opacity 0.3s;
+    }}
+    
+    .footer-link:hover {{
+        opacity: 1;
+        text-decoration: underline;
+    }}
+    
+    .footer-version {{
+        font-size: 11px;
+        opacity: 0.7;
+        background: rgba(255,255,255,0.1);
+        padding: 2px 8px;
+        border-radius: 12px;
+    }}
+    </style>
+    
+    <div class="footer-advanced">
+        <div class="footer-section">
+            <span class="footer-logo">🏥 LOCATEL RESTREPO</span>
+            <span class="footer-stats">{stats}</span>
+        </div>
+        <div class="footer-section">
+            <span>Creado por Edwin Merchan</span>
+            <span class="footer-version">v2.0.0</span>
+        </div>
+        <div class="footer-section">
+            <a href="#" class="footer-link">Ayuda</a>
+            <span>|</span>
+            <a href="#" class="footer-link">Soporte</a>
+            <span>|</span>
+            <span>{datetime.now().strftime('%d/%m/%Y %H:%M')}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# Función para mostrar el footer según preferencia
+def show_footer_selector(version="advanced"):
+    """
+    Mostrar diferentes versiones del footer
+    version: "simple", "advanced", o "full"
+    """
+    if version == "simple":
+        show_footer_simple()
+    elif version == "advanced":
+        show_footer_advanced()
+    else:
+        show_footer()
+
 # ---------------- CONTROL PRINCIPAL ---------------- #
 def main():
-    # Inicializar keep-alive
+    # NUEVO: Inicializar keep-alive (agrega esta línea AL PRINCIPIO)
     init_keep_alive()
     
     if not st.session_state.user:
         show_login()
     else:
-        # Mostrar el header con menú hamburguesa
-        render_hamburger_header()
+        show_menu()
         
-        # Contenedor para el contenido principal
+        # Agregar un contenedor para el contenido principal
         st.markdown('<div class="main-content">', unsafe_allow_html=True)
         
         pages = {
@@ -1510,10 +1504,16 @@ def main():
         else:
             page_dashboard() if st.session_state.user["role"] == "admin" else page_registrar_ventas()
         
+        # Cerrar el contenedor principal
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Mostrar footer
-        show_footer()
+        # NUEVO: Mostrar estado del keep-alive en el sidebar (opcional)
+        with st.sidebar:
+            st.divider()
+            render_keep_alive_status()
+        
+        # Mostrar el footer
+        show_footer_selector("advanced")
 
 if __name__ == "__main__":
     main()
