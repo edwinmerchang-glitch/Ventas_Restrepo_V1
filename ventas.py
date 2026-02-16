@@ -476,13 +476,14 @@ def show_menu():
             st.markdown("### 📍 Navegación")
             
             if st.session_state.user["role"] == "admin":
-                menu_items = [
-                    ("📊 Dashboard", "Dashboard"),
-                    ("🏆 Ranking", "Ranking"),
-                    ("🧑‍💼 Empleados", "Empleados"),
-                    ("👥 Usuarios", "Usuarios"),
-                    ("📊 Reportes", "Reportes")
-                ]
+               menu_items = [
+                   ("📊 Dashboard", "Dashboard"),
+                   ("🏆 Ranking", "Ranking"),
+                   ("🧑‍ Empleados", "Empleados"),
+                   ("👥 Usuarios", "Usuarios"),
+                   ("📊 Reportes", "Reportes"),
+                   ("💾 Backups", "Backups")  # NUEVA OPCIÓN
+                ]	
             else:
                 menu_items = [
                     ("📝 Registrar ventas", "Registrar ventas"),
@@ -1770,10 +1771,11 @@ def main():
             "Empleados": page_empleados,
             "Usuarios": page_usuarios,
             "Reportes": page_reportes,
+            "Backups": render_backup_page,  # NUEVA PÁGINA
             "Registrar ventas": page_registrar_ventas,
             "Mi desempeño": page_mi_desempeno,
             "Mi perfil": page_mi_perfil
-        }
+         }
         
         if st.session_state.page in pages:
             pages[st.session_state.page]()
