@@ -8,6 +8,7 @@ import sqlite3
 import time
 # Al principio, con los otros import
 from keep_alive import init_keep_alive, render_keep_alive_status
+from backup_manager import render_backup_page
 
 # Configuración de página
 # Configuración de página - MODIFICADA
