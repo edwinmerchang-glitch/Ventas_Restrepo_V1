@@ -6,6 +6,8 @@ from database import create_tables, get_connection, migrate_database, verify_dat
 from auth import authenticate, create_user, get_all_users
 import sqlite3
 import time
+# Al principio, con los otros import
+from keep_alive import init_keep_alive, render_keep_alive_status
 
 # Configuración de página
 st.set_page_config(
@@ -1475,6 +1477,9 @@ def show_footer_selector(version="advanced"):
 
 # ---------------- CONTROL PRINCIPAL ---------------- #
 def main():
+    # NUEVO: Inicializar keep-alive (agrega esta línea AL PRINCIPIO)
+    init_keep_alive()
+    
     if not st.session_state.user:
         show_login()
     else:
@@ -1502,8 +1507,13 @@ def main():
         # Cerrar el contenedor principal
         st.markdown('</div>', unsafe_allow_html=True)
         
+        # NUEVO: Mostrar estado del keep-alive en el sidebar (opcional)
+        with st.sidebar:
+            st.divider()
+            render_keep_alive_status()
+        
         # Mostrar el footer
-        show_footer_selector("advanced")  # Puedes cambiar a "simple" o "full"
+        show_footer_selector("advanced")
 
 if __name__ == "__main__":
     main()
