@@ -123,3 +123,54 @@
         padding: 15px;
     }
 }
+
+/* styles.css - Estilos adicionales para el menú hamburguesa */
+
+/* Animación suave para el sidebar */
+[data-testid="stSidebar"] {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+/* Personalizar el botón de expandir nativo de Streamlit (opcional) */
+[data-testid="collapsedControl"] {
+    display: none !important; /* Oculta el botón nativo de Streamlit */
+}
+
+/* Ajustes responsive */
+@media (max-width: 768px) {
+    .hamburger-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 22px;
+        top: 15px;
+        left: 15px;
+    }
+    
+    [data-testid="stSidebar"] {
+        width: 85% !important;
+        max-width: 320px !important;
+    }
+}
+
+/* Scroll personalizado para el sidebar */
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+    max-height: 100vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #4f7cff #f0f0f0;
+}
+
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"]::-webkit-scrollbar {
+    width: 6px;
+}
+
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"]::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 10px;
+}
+
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"]::-webkit-scrollbar-thumb {
+    background: #4f7cff;
+    border-radius: 10px;
+}

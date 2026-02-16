@@ -10,11 +10,12 @@ import time
 from keep_alive import init_keep_alive, render_keep_alive_status
 
 # Configuración de página
+# Configuración de página - MODIFICADA
 st.set_page_config(
     "Ventas Equipo Locatel Restrepo", 
     layout="wide", 
     page_icon="",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # Cambiado de "expanded" a "collapsed"
 )
 
 # Verificar y crear base de datos al inicio
@@ -209,68 +210,188 @@ def show_login():
             st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------- MENÚ ---------------- #
+# ---------------- MENÚ CON HAMBURGUESA ---------------- #
 def show_menu():
-    """Mostrar menú con botones"""
-    with st.sidebar:
-        st.markdown("""
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #4f7cff; font-size: 32px; margin: 0;">LOCATEL RESTREPO</h1>
-            <p style="color: #666; font-size: 14px;">Sistema de Ventas</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        emp_info = get_employee_info(st.session_state.user["id"])
-        if emp_info:
-            badge_class = get_badge_class(emp_info[2])
-            st.markdown(f"""
-            <div style="text-align: center; padding: 10px; background: white; border-radius: 10px; margin-bottom: 15px;">
-                <h4 style="margin: 5px 0;">{emp_info[1]}</h4>
-                <p style="margin: 2px 0;">
-                    <span class="badge {badge_class}">{emp_info[2] or 'Sin cargo'}</span>
-                </p>
-                <p style="margin: 2px 0;">
-                    <span class="badge badge-depto">{emp_info[3] or 'Sin depto'}</span>
-                </p>
+    """Mostrar menú con botón hamburguesa que inicia cerrado"""
+    
+    # Botón de hamburguesa personalizado en la parte superior izquierda
+    st.markdown("""
+    <style>
+    /* Estilos para el botón hamburguesa */
+    .hamburger-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        background: #4f7cff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        width: 45px;
+        height: 45px;
+        font-size: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(79, 124, 255, 0.3);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .hamburger-btn:hover {
+        background: #3a5fd0;
+        transform: scale(1.05);
+        box-shadow: 0 6px 15px rgba(79, 124, 255, 0.4);
+    }
+    
+    /* Overlay cuando el menú está abierto */
+    .menu-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+        backdrop-filter: blur(3px);
+    }
+    
+    /* Animación para el sidebar */
+    [data-testid="stSidebar"] {
+        transition: transform 0.3s ease-in-out;
+    }
+    
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        transform: translateX(0);
+    }
+    
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        transform: translateX(-100%);
+    }
+    
+    /* Ajustar el contenido principal cuando el sidebar está oculto */
+    .main-content {
+        margin-left: 0 !important;
+        transition: margin-left 0.3s ease-in-out;
+    }
+    
+    /* Badge de notificación para el botón hamburguesa */
+    .hamburger-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ff4b4b;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Botón hamburguesa con lógica en session state
+    col1, col2, col3 = st.columns([1, 10, 1])
+    with col1:
+        if st.button("☰", key="hamburger_btn", help="Abrir menú"):
+            st.session_state.sidebar_open = not st.session_state.get('sidebar_open', False)
+            st.rerun()
+    
+    # Inicializar estado del sidebar si no existe
+    if 'sidebar_open' not in st.session_state:
+        st.session_state.sidebar_open = False
+    
+    # Overlay cuando el menú está abierto (para cerrar al hacer clic fuera)
+    if st.session_state.sidebar_open:
+        if st.button("", key="overlay_btn", help="Cerrar menú"):
+            st.session_state.sidebar_open = False
+            st.rerun()
+        st.markdown('<div class="menu-overlay"></div>', unsafe_allow_html=True)
+    
+    # Mostrar sidebar solo si está abierto
+    if st.session_state.sidebar_open:
+        with st.sidebar:
+            # Botón de cerrar en el sidebar
+            st.markdown("""
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+                <button onclick="document.querySelector('[data-testid=stSidebar] [aria-expanded=false]').click()" 
+                        style="background: none; border: none; color: #666; font-size: 24px; cursor: pointer;">
+                    ✕
+                </button>
             </div>
             """, unsafe_allow_html=True)
-        
-        st.divider()
-        
-        if st.session_state.user["role"] == "admin":
-            menu_options = {
-                "📊 Dashboard": "Dashboard",
-                "🏆 Ranking": "Ranking",
-                "🧑‍💼 Empleados": "Empleados",
-                "👥 Usuarios": "Usuarios",
-                "📊 Reportes": "Reportes"
-            }
-        else:
-            menu_options = {
-                "📝 Registrar": "Registrar ventas",
-                "📈 Mi Desempeño": "Mi desempeño",
-                "👤 Mi perfil": "Mi perfil",
-                "🏆 Ranking": "Ranking"
-            }
-        
-        for label, page in menu_options.items():
-            if st.button(
-                label, 
-                key=f"menu_{page}",
-                use_container_width=True,
-                type="secondary" if st.session_state.page != page else "primary"
-            ):
-                st.session_state.page = page
+            
+            st.markdown("""
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: #4f7cff; font-size: 28px; margin: 0;">LOCATEL</h1>
+                <p style="color: #666; font-size: 12px;">Sistema de Ventas</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Información del empleado
+            emp_info = get_employee_info(st.session_state.user["id"])
+            if emp_info:
+                badge_class = get_badge_class(emp_info[2])
+                st.markdown(f"""
+                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                           border-radius: 15px; margin-bottom: 20px; color: white;">
+                    <h4 style="margin: 5px 0; color: white;">{emp_info[1]}</h4>
+                    <p style="margin: 2px 0;">
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; 
+                                   font-size: 12px; border: 1px solid rgba(255,255,255,0.3);">
+                            {emp_info[2] or 'Sin cargo'}
+                        </span>
+                    </p>
+                    <p style="margin: 2px 0; font-size: 13px;">
+                        📍 {emp_info[3] or 'Sin depto'} | 🎯 {emp_info[4]} uni
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.divider()
+            
+            # Opciones de menú según rol
+            if st.session_state.user["role"] == "admin":
+                menu_options = {
+                    "📊 Dashboard": "Dashboard",
+                    "🏆 Ranking": "Ranking",
+                    "🧑‍💼 Empleados": "Empleados",
+                    "👥 Usuarios": "Usuarios",
+                    "📊 Reportes": "Reportes"
+                }
+            else:
+                menu_options = {
+                    "📝 Registrar": "Registrar ventas",
+                    "📈 Mi Desempeño": "Mi desempeño",
+                    "👤 Mi perfil": "Mi perfil",
+                    "🏆 Ranking": "Ranking"
+                }
+            
+            # Botones del menú
+            for label, page in menu_options.items():
+                btn_type = "primary" if st.session_state.page == page else "secondary"
+                if st.button(
+                    label, 
+                    key=f"menu_{page}",
+                    use_container_width=True,
+                    type=btn_type
+                ):
+                    st.session_state.page = page
+                    st.session_state.sidebar_open = False  # Cerrar menú al seleccionar
+                    st.rerun()
+            
+            st.divider()
+            
+            # Botón de cerrar sesión
+            if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):
+                st.session_state.clear()
+                st.cache_data.clear()
                 st.rerun()
-        
-        st.divider()
-        
-        if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):
-            st.session_state.clear()
-            st.cache_data.clear()
-            st.rerun()
-        
-        #st.divider()
-        #st.caption(f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
 # ============= NUEVA PÁGINA DE EMPLEADOS (primero empleado) =============
 # ... (todo el código anterior se mantiene igual hasta la página de empleados)
@@ -1477,16 +1598,20 @@ def show_footer_selector(version="advanced"):
 
 # ---------------- CONTROL PRINCIPAL ---------------- #
 def main():
-    # NUEVO: Inicializar keep-alive (agrega esta línea AL PRINCIPIO)
+    # NUEVO: Inicializar keep-alive
     init_keep_alive()
+    
+    # Asegurar que el sidebar inicie cerrado
+    if 'sidebar_open' not in st.session_state:
+        st.session_state.sidebar_open = False
     
     if not st.session_state.user:
         show_login()
     else:
         show_menu()
         
-        # Agregar un contenedor para el contenido principal
-        st.markdown('<div class="main-content">', unsafe_allow_html=True)
+        # Agregar un contenedor para el contenido principal con padding para el botón
+        st.markdown('<div class="main-content" style="padding-top: 20px;">', unsafe_allow_html=True)
         
         pages = {
             "Dashboard": page_dashboard,
@@ -1507,7 +1632,7 @@ def main():
         # Cerrar el contenedor principal
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # NUEVO: Mostrar estado del keep-alive en el sidebar (opcional)
+        # Mostrar estado del keep-alive
         with st.sidebar:
             st.divider()
             render_keep_alive_status()
