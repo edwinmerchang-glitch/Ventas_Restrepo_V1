@@ -9,12 +9,12 @@ import time
 # Al principio, con los otros import
 from keep_alive import init_keep_alive, render_keep_alive_status
 
-# Configuración de página
+# Configuración de página - MODIFICADA para menú hamburguesa
 st.set_page_config(
     "Ventas Equipo Locatel Restrepo", 
     layout="wide", 
     page_icon="",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # Cambiado a collapsed para que inicie cerrado
 )
 
 # Verificar y crear base de datos al inicio
@@ -68,6 +68,130 @@ def load_css():
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
         pass
+    
+    # CSS adicional para el menú hamburguesa
+    st.markdown("""
+    <style>
+    /* Estilo para el botón del menú hamburguesa */
+    .stApp header [data-testid="stSidebarCollapsedControl"] {
+        background-color: #4f7cff;
+        border-radius: 50%;
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+        margin: 10px;
+    }
+    
+    .stApp header [data-testid="stSidebarCollapsedControl"]:hover {
+        transform: scale(1.1);
+        background-color: #3a5fd0;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    
+    /* Estilo para el sidebar cuando está abierto */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        padding: 20px 10px;
+    }
+    
+    /* Animación para los elementos del menú */
+    [data-testid="stSidebar"] .stButton button {
+        transition: all 0.3s ease;
+        margin: 5px 0;
+        border-radius: 10px;
+        border: none;
+        text-align: left;
+        padding: 12px 15px;
+    }
+    
+    [data-testid="stSidebar"] .stButton button:hover {
+        transform: translateX(5px);
+        background-color: #e3e9ff !important;
+        box-shadow: 0 2px 8px rgba(79, 124, 255, 0.3);
+    }
+    
+    /* Estilo para el botón activo */
+    [data-testid="stSidebar"] .stButton button[kind="primary"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Header del sidebar */
+    .sidebar-header {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        color: white;
+    }
+    
+    .sidebar-header h3 {
+        margin: 0;
+        font-size: 20px;
+    }
+    
+    .sidebar-header p {
+        margin: 5px 0 0;
+        opacity: 0.9;
+        font-size: 12px;
+    }
+    
+    /* Perfil de usuario en sidebar */
+    .user-profile {
+        background: white;
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        text-align: center;
+        border: 1px solid #eef2f6;
+    }
+    
+    .user-name {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1e293b;
+        margin: 10px 0 5px;
+    }
+    
+    .user-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin: 2px;
+    }
+    
+    /* Personalización del botón hamburguesa */
+    .hamburger-custom {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 999;
+    }
+    
+    /* Mejoras para móvil */
+    @media (max-width: 768px) {
+        .stApp header [data-testid="stSidebarCollapsedControl"] {
+            width: 40px;
+            height: 40px;
+        }
+        
+        [data-testid="stSidebar"] {
+            width: 85% !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 load_css()
 
@@ -76,6 +200,8 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "page" not in st.session_state:
     st.session_state.page = "Dashboard" if st.session_state.user else "Login"
+if "sidebar_state" not in st.session_state:
+    st.session_state.sidebar_state = "collapsed"
 
 # ---------------- FUNCIONES DE UTILIDAD ---------------- #
 @st.cache_data(ttl=60)
@@ -186,7 +312,6 @@ def show_login():
             p = st.text_input("Contraseña", type="password", placeholder="********")
             
             if st.button("Ingresar", use_container_width=True, type="primary"):
-                # ... lógica de autenticación ...
                 if u and p:
                     user = authenticate(u, p)
                     if user:
@@ -208,34 +333,52 @@ def show_login():
             
             st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------- MENÚ ---------------- #
-def show_menu():
-    """Mostrar menú con botones"""
+# ---------------- MENÚ HAMBURGUESA ---------------- #
+def show_hamburger_menu():
+    """Mostrar menú tipo hamburguesa en el sidebar"""
+    
     with st.sidebar:
+        # Header del sidebar
         st.markdown("""
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #4f7cff; font-size: 32px; margin: 0;">LOCATEL RESTREPO</h1>
-            <p style="color: #666; font-size: 14px;">Sistema de Ventas</p>
+        <div class="sidebar-header">
+            <h3>🍔 LOCATEL</h3>
+            <p>Sistema de Ventas</p>
         </div>
         """, unsafe_allow_html=True)
         
-        emp_info = get_employee_info(st.session_state.user["id"])
+        # Información del usuario si está logueado
+        emp_info = get_employee_info(st.session_state.user["id"]) if st.session_state.user else None
+        
         if emp_info:
             badge_class = get_badge_class(emp_info[2])
             st.markdown(f"""
-            <div style="text-align: center; padding: 10px; background: white; border-radius: 10px; margin-bottom: 15px;">
-                <h4 style="margin: 5px 0;">{emp_info[1]}</h4>
-                <p style="margin: 2px 0;">
-                    <span class="badge {badge_class}">{emp_info[2] or 'Sin cargo'}</span>
-                </p>
-                <p style="margin: 2px 0;">
-                    <span class="badge badge-depto">{emp_info[3] or 'Sin depto'}</span>
-                </p>
+            <div class="user-profile">
+                <div style="font-size: 40px; margin-bottom: 5px;">👤</div>
+                <div class="user-name">{emp_info[1]}</div>
+                <div>
+                    <span class="user-badge {badge_class}">{emp_info[2] or 'Sin cargo'}</span>
+                    <span class="user-badge badge-depto">{emp_info[3] or 'Sin depto'}</span>
+                </div>
+                <div style="margin-top: 8px; font-size: 13px; color: #666;">
+                    🎯 Meta: {emp_info[4]} unidades
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        elif st.session_state.user:
+            # Si el usuario no tiene empleado asociado
+            st.markdown(f"""
+            <div class="user-profile">
+                <div style="font-size: 40px; margin-bottom: 5px;">👤</div>
+                <div class="user-name">{st.session_state.user['username']}</div>
+                <div>
+                    <span class="user-badge badge-cargo-drogueria">{st.session_state.user['role']}</span>
+                </div>
             </div>
             """, unsafe_allow_html=True)
         
         st.divider()
         
+        # Opciones de menú según el rol
         if st.session_state.user["role"] == "admin":
             menu_options = {
                 "📊 Dashboard": "Dashboard",
@@ -252,29 +395,37 @@ def show_menu():
                 "🏆 Ranking": "Ranking"
             }
         
+        # Botones del menú con estilo mejorado
         for label, page in menu_options.items():
+            is_active = st.session_state.page == page
             if st.button(
                 label, 
                 key=f"menu_{page}",
                 use_container_width=True,
-                type="secondary" if st.session_state.page != page else "primary"
+                type="primary" if is_active else "secondary"
             ):
                 st.session_state.page = page
                 st.rerun()
         
         st.divider()
         
+        # Botón de cerrar sesión
         if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):
             st.session_state.clear()
             st.cache_data.clear()
             st.rerun()
         
-        #st.divider()
-        #st.caption(f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        # Información adicional
+        st.divider()
+        st.caption(f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        
+        # Estado del keep-alive
+        render_keep_alive_status()
+
+# El resto de las funciones (page_empleados, page_usuarios, etc.) se mantienen IGUAL
+# ... (todo el código de las páginas se mantiene sin cambios)
 
 # ============= NUEVA PÁGINA DE EMPLEADOS (primero empleado) =============
-# ... (todo el código anterior se mantiene igual hasta la página de empleados)
-
 def page_empleados():
     st.title("🧑‍💼 Gestión de Empleados AIS")
     
@@ -1483,7 +1634,8 @@ def main():
     if not st.session_state.user:
         show_login()
     else:
-        show_menu()
+        # Mostrar el menú hamburguesa (ahora en el sidebar)
+        show_hamburger_menu()
         
         # Agregar un contenedor para el contenido principal
         st.markdown('<div class="main-content">', unsafe_allow_html=True)
@@ -1506,11 +1658,6 @@ def main():
         
         # Cerrar el contenedor principal
         st.markdown('</div>', unsafe_allow_html=True)
-        
-        # NUEVO: Mostrar estado del keep-alive en el sidebar (opcional)
-        with st.sidebar:
-            st.divider()
-            render_keep_alive_status()
         
         # Mostrar el footer
         show_footer_selector("advanced")
