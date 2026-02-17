@@ -9,16 +9,13 @@ import time
 # Al principio, con los otros import
 from keep_alive import init_keep_alive, render_keep_alive_status
 from backup_manager import render_backup_page
-# Al principio, después de los otros imports
-from affiliations import render_affiliations_page
 
 # Configuración de página
-# Configuración de página - MODIFICADA
 st.set_page_config(
     "Ventas Equipo Locatel Restrepo", 
     layout="wide", 
     page_icon="",
-    initial_sidebar_state="collapsed"  # Cambiado de "expanded" a "collapsed"
+    initial_sidebar_state="collapsed"
 )
 
 # Verificar y crear base de datos al inicio
@@ -27,7 +24,6 @@ with st.spinner("🔄 Inicializando sistema..."):
         create_tables()
         migrate_database()
         verify_database()
-        # No mostrar mensaje de éxito en producción
     except Exception as e:
         st.error(f"❌ Error inicializando base de datos: {e}")
         st.stop()
@@ -144,7 +140,7 @@ def get_employee_info(user_id):
         conn = get_connection()
         cur = conn.cursor()
         cur.execute("""
-            SELECT id, name, position, department, goal, affiliation_goal 
+            SELECT id, name, position, department, goal 
             FROM employees 
             WHERE user_id = ?
         """, (user_id,))
@@ -190,7 +186,6 @@ def show_login():
             p = st.text_input("Contraseña", type="password", placeholder="********")
             
             if st.button("Ingresar", use_container_width=True, type="primary"):
-                # ... lógica de autenticación ...
                 if u and p:
                     user = authenticate(u, p)
                     if user:
@@ -212,7 +207,6 @@ def show_login():
             
             st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------- MENÚ ---------------- #
 # ---------------- MENÚ CON HAMBURGUESA ---------------- #
 def show_menu():
     """Mostrar menú con botón hamburguesa que inicia cerrado"""
@@ -479,15 +473,14 @@ def show_menu():
             st.markdown("### 📍 Navegación")
             
             if st.session_state.user["role"] == "admin":
-               menu_items = [
-                   ("📊 Dashboard", "Dashboard"),
-                   ("🏆 Ranking", "Ranking"),
-                   ("🧑‍ Empleados", "Empleados"),
-                   ("👥 Usuarios", "Usuarios"),
-                   ("📊 Reportes", "Reportes"),
-                   ("📋 Afiliaciones", "Afiliaciones"),
-                   ("💾 Backups", "Backups")  # NUEVA OPCIÓN
-                ]	
+                menu_items = [
+                    ("📊 Dashboard", "Dashboard"),
+                    ("🏆 Ranking", "Ranking"),
+                    ("🧑‍ Empleados", "Empleados"),
+                    ("👥 Usuarios", "Usuarios"),
+                    ("📊 Reportes", "Reportes"),
+                    ("💾 Backups", "Backups")
+                ]
             else:
                 menu_items = [
                     ("📝 Registrar ventas", "Registrar ventas"),
@@ -504,7 +497,7 @@ def show_menu():
                     type="primary" if st.session_state.page == page else "secondary"
                 ):
                     st.session_state.page = page
-                    st.session_state.sidebar_open = False  # Cerrar menú al navegar
+                    st.session_state.sidebar_open = False
                     st.rerun()
             
             st.divider()
@@ -549,9 +542,7 @@ def show_menu():
                 st.cache_data.clear()
                 st.rerun()
 
-# ============= NUEVA PÁGINA DE EMPLEADOS (primero empleado) =============
-# ... (todo el código anterior se mantiene igual hasta la página de empleados)
-
+# ============= PÁGINA DE EMPLEADOS =============
 def page_empleados():
     st.title("🧑‍💼 Gestión de Empleados AIS")
     
@@ -584,7 +575,6 @@ def page_empleados():
             
             if submitted:
                 if name and position and department:
-                    # Verificar si ya existe un empleado con ese nombre
                     check_query = "SELECT id FROM employees WHERE name = ?"
                     existing = execute_query(check_query, (name,))
                     
@@ -616,7 +606,6 @@ def page_empleados():
         </div>
         """, unsafe_allow_html=True)
         
-        # Obtener empleados sin usuario asignado
         empleados_sin_usuario = execute_query("""
             SELECT id, name, position, department 
             FROM employees 
@@ -631,7 +620,6 @@ def page_empleados():
                 st.rerun()
         else:
             with st.form("asignar_usuario_form"):
-                # Selector de empleado
                 empleado_options = {f"{emp[1]} - {emp[2]}": emp[0] for emp in empleados_sin_usuario}
                 selected_empleado = st.selectbox(
                     "Seleccionar empleado*", 
@@ -641,7 +629,6 @@ def page_empleados():
                 
                 st.divider()
                 
-                # Datos del usuario
                 st.subheader("Datos del usuario")
                 username = st.text_input("Nombre de usuario*", placeholder="ej: juan.perez")
                 password = st.text_input("Contraseña*", type="password", placeholder="Mínimo 6 caracteres")
@@ -658,14 +645,11 @@ def page_empleados():
                         st.warning("⚠️ Las contraseñas no coinciden")
                     else:
                         try:
-                            # Crear usuario
                             user_result = create_user(username, password, "empleado")
                             
                             if user_result:
-                                # Obtener el ID del usuario creado
                                 user_id = user_result[0]
                                 
-                                # Asignar usuario al empleado
                                 update_query = "UPDATE employees SET user_id = ? WHERE id = ?"
                                 update_success = execute_insert(update_query, (user_id, empleado_id))
                                 
@@ -708,7 +692,6 @@ def page_empleados():
         """)
         
         if not df_emp.empty:
-            # Colorear filas según estado
             def color_estado(val):
                 if '✅' in val:
                     return 'background-color: #d4edda'
@@ -719,7 +702,6 @@ def page_empleados():
             styled_df = df_emp.style.applymap(color_estado, subset=['Estado'])
             st.dataframe(styled_df, use_container_width=True, hide_index=True)
             
-            # Estadísticas
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("Total empleados", len(df_emp))
@@ -730,7 +712,6 @@ def page_empleados():
                 sin_usuario = len(df_emp[df_emp['Estado'] == '❌ Sin usuario'])
                 st.metric("Sin usuario", sin_usuario)
             
-            # Resumen por departamento
             st.subheader("📊 Resumen por departamento")
             depto_resumen = df_emp.groupby('Departamento').agg({
                 'Nombre': 'count'
@@ -743,7 +724,6 @@ def page_empleados():
     with tab4:
         st.subheader("✏️ Editar o Eliminar Empleados")
         
-        # Obtener todos los empleados
         todos_empleados = execute_query("""
             SELECT 
                 e.id, 
@@ -760,7 +740,6 @@ def page_empleados():
         if not todos_empleados:
             st.info("📭 No hay empleados para editar")
         else:
-            # Crear opciones para el selector
             empleado_options = {}
             for emp in todos_empleados:
                 usuario_info = f" (Usuario: {emp[5]})" if emp[5] else " (Sin usuario)"
@@ -774,7 +753,6 @@ def page_empleados():
             )
             empleado_id = empleado_options[selected_display]
             
-            # Obtener datos del empleado seleccionado
             empleado_data = next((emp for emp in todos_empleados if emp[0] == empleado_id), None)
             
             if empleado_data:
@@ -815,17 +793,14 @@ def page_empleados():
                                 st.warning("⚠️ Completa todos los campos")
                         
                         if submitted_delete:
-                            # Verificar si tiene ventas antes de eliminar
                             ventas = execute_query("SELECT COUNT(*) FROM sales WHERE employee_id = ?", (empleado_id,))
                             tiene_ventas = ventas[0][0] > 0 if ventas else False
                             
                             if tiene_ventas:
                                 st.error("❌ No se puede eliminar: el empleado tiene ventas registradas")
                             else:
-                                # Confirmar eliminación
                                 st.session_state.confirmar_eliminar = empleado_id
                     
-                    # Mostrar confirmación fuera del formulario
                     if 'confirmar_eliminar' in st.session_state and st.session_state.confirmar_eliminar == empleado_id:
                         st.warning("⚠️ ¿Estás seguro de eliminar este empleado?")
                         col_confirm1, col_confirm2 = st.columns(2)
@@ -848,7 +823,6 @@ def page_empleados():
                 with col2:
                     st.markdown("### ℹ️ Información")
                     
-                    # Obtener conteo de ventas
                     ventas_count = execute_query("SELECT COUNT(*) FROM sales WHERE employee_id = ?", (empleado_id,))
                     total_ventas = ventas_count[0][0] if ventas_count else 0
                     
@@ -865,7 +839,7 @@ def page_empleados():
                     else:
                         st.info("👤 Este empleado no tiene usuario asignado")
 
-# ============= PÁGINA DE USUARIOS (simplificada) =============
+# ============= PÁGINA DE USUARIOS =============
 def page_usuarios():
     st.title("👤 Gestión de Usuarios AIS")
     
@@ -924,7 +898,6 @@ def page_usuarios():
         else:
             st.info("No hay usuarios para modificar")
     
-    # ===== NUEVA PESTAÑA: EDITAR/ELIMINAR USUARIOS =====
     with tab3:
         st.subheader("✏️ Editar o Eliminar Usuarios")
         
@@ -936,7 +909,6 @@ def page_usuarios():
         </div>
         """, unsafe_allow_html=True)
         
-        # Obtener todos los usuarios
         todos_usuarios = execute_query("""
             SELECT 
                 u.id, 
@@ -952,7 +924,6 @@ def page_usuarios():
         if not todos_usuarios:
             st.info("📭 No hay usuarios para editar")
         else:
-            # Crear opciones para el selector
             usuario_options = {}
             for user in todos_usuarios:
                 empleado_info = f" (Empleado: {user[3]})" if user[3] else " (Sin empleado)"
@@ -966,7 +937,6 @@ def page_usuarios():
             )
             usuario_id = usuario_options[selected_display]
             
-            # Obtener datos del usuario seleccionado
             usuario_data = next((user for user in todos_usuarios if user[0] == usuario_id), None)
             
             if usuario_data:
@@ -975,7 +945,6 @@ def page_usuarios():
                 with col1:
                     st.markdown("### 📝 Editar información")
                     
-                    # No permitir editar admin por defecto
                     if usuario_data[1] == "admin":
                         st.warning("⚠️ El usuario 'admin' no se puede modificar")
                     else:
@@ -992,7 +961,6 @@ def page_usuarios():
                             
                             if submitted_edit:
                                 if new_username:
-                                    # Verificar si el nuevo username ya existe (y no es el mismo usuario)
                                     check_query = "SELECT id FROM users WHERE username = ? AND id != ?"
                                     check_result = execute_query(check_query, (new_username, usuario_id))
                                     
@@ -1012,14 +980,11 @@ def page_usuarios():
                                     st.warning("⚠️ El nombre de usuario no puede estar vacío")
                             
                             if submitted_delete:
-                                # Verificar si el usuario tiene empleado asociado
-                                if usuario_data[3]:  # Tiene empleado
+                                if usuario_data[3]:
                                     st.error("❌ No se puede eliminar: el usuario tiene un empleado asociado")
                                 else:
-                                    # Confirmar eliminación
                                     st.session_state.confirmar_eliminar_usuario = usuario_id
                         
-                        # Mostrar confirmación fuera del formulario
                         if 'confirmar_eliminar_usuario' in st.session_state and st.session_state.confirmar_eliminar_usuario == usuario_id:
                             st.warning(f"⚠️ ¿Estás seguro de eliminar el usuario '{usuario_data[1]}'?")
                             col_confirm1, col_confirm2 = st.columns(2)
@@ -1055,7 +1020,7 @@ def page_usuarios():
                     else:
                         st.info("👤 Usuario sin empleado")
 
-# Las demás páginas se mantienen igual...
+# ============= PÁGINAS DE VENTAS =============
 def page_dashboard():
     st.title("📊 Dashboard de ventas")
     
@@ -1198,7 +1163,7 @@ def page_ranking():
     )
 
 def page_registrar_ventas():
-    st.title("📝 Registro de Ventas y Afiliaciones - AIS")
+    st.title("📝 Registro Diario de Ventas - AIS")
     
     emp_info = get_employee_info(st.session_state.user["id"])
     
@@ -1214,79 +1179,69 @@ def page_registrar_ventas():
         <p>
             <span class="badge {badge_class}">{emp_info[2]}</span>
             <span class="badge badge-depto">{emp_info[3]}</span>
-            🎯 Meta ventas: {emp_info[4]} unidades | 🎯 Meta afiliaciones: {emp_info[5] if len(emp_info) > 5 else 0}
+            🎯 Meta mensual: {emp_info[4]} unidades
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Crear tabs para ventas y afiliaciones
-    tab_ventas, tab_afiliaciones = st.tabs(["💰 Registrar Ventas", "📋 Registrar Afiliaciones"])
+    result = execute_query(
+        "SELECT COUNT(*) FROM sales WHERE employee_id = ? AND date = ?",
+        (emp_info[0], str(date.today()))
+    )
+    ya_registro_hoy = result[0][0] > 0 if result else False
     
-    with tab_ventas:
-        # Verificar registro hoy
+    if ya_registro_hoy:
+        st.warning("⚠️ Ya has registrado ventas hoy. ¿Deseas agregar más?")
+    
+    with st.form("ventas_form"):
+        st.subheader("Ingresa las ventas del día")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            aut = st.number_input("📦 Autoliquidable", min_value=0, step=1, value=0)
+            ma = st.number_input("🏷 Marca Propia", min_value=0, step=1, value=0)
+        
+        with col2:
+            of = st.number_input("🔥 Oferta Semana", min_value=0, step=1, value=0)
+            ad = st.number_input("➕ Producto Adicional", min_value=0, step=1, value=0)
+        
+        total = aut + of + ma + ad
+        
+        mes_actual = date.today().strftime("%Y-%m")
         result = execute_query(
-            "SELECT COUNT(*) FROM sales WHERE employee_id = ? AND date = ?",
-            (emp_info[0], str(date.today()))
+            "SELECT SUM(autoliquidable + oferta + marca + adicional) FROM sales WHERE employee_id = ? AND date LIKE ?",
+            (emp_info[0], f"{mes_actual}%")
         )
-        ya_registro_hoy = result[0][0] > 0 if result else False
+        ventas_mes = result[0][0] or 0 if result else 0
         
-        if ya_registro_hoy:
-            st.warning("⚠️ Ya has registrado ventas hoy. ¿Deseas agregar más?")
+        progreso = ((ventas_mes + total) / emp_info[4] * 100) if emp_info[4] > 0 else 0
         
-        with st.form("ventas_form"):
-            st.subheader("Ingresa las ventas del día")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                aut = st.number_input("📦 Autoliquidable", min_value=0, step=1, value=0)
-                ma = st.number_input("🏷 Marca Propia", min_value=0, step=1, value=0)
-            
-            with col2:
-                of = st.number_input("🔥 Oferta Semana", min_value=0, step=1, value=0)
-                ad = st.number_input("➕ Producto Adicional", min_value=0, step=1, value=0)
-            
-            total = aut + of + ma + ad
-            
-            # Progreso mensual
-            mes_actual = date.today().strftime("%Y-%m")
-            result = execute_query(
-                "SELECT SUM(autoliquidable + oferta + marca + adicional) FROM sales WHERE employee_id = ? AND date LIKE ?",
-                (emp_info[0], f"{mes_actual}%")
-            )
-            ventas_mes = result[0][0] or 0 if result else 0
-            
-            progreso = ((ventas_mes + total) / emp_info[4] * 100) if emp_info[4] > 0 else 0
-            
-            st.markdown(f"""
-            <div style="margin: 20px 0;">
-                <p><strong>Total del día:</strong> {total} unidades</p>
-                <p><strong>Progreso mensual:</strong> {ventas_mes + total} / {emp_info[4]} unidades ({progreso:.1f}%)</p>
-                <div class="progress">
-                    <div class="progress-bar" style="width: {min(progreso, 100)}%;"></div>
-                </div>
+        st.markdown(f"""
+        <div style="margin: 20px 0;">
+            <p><strong>Total del día:</strong> {total} unidades</p>
+            <p><strong>Progreso mensual:</strong> {ventas_mes + total} / {emp_info[4]} unidades ({progreso:.1f}%)</p>
+            <div class="progress">
+                <div class="progress-bar" style="width: {min(progreso, 100)}%;"></div>
             </div>
-            """, unsafe_allow_html=True)
-            
-            submitted = st.form_submit_button("💾 Guardar ventas", use_container_width=True)
-            
-            if submitted:
-                if total > 0:
-                    success = execute_insert("""
-                        INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (emp_info[0], str(date.today()), aut, of, ma, ad))
-                    
-                    if success:
-                        st.success("✅ Venta registrada exitosamente!")
-                        st.balloons()
-                        st.cache_data.clear()
-                        st.rerun()
-                else:
-                    st.warning("⚠️ Debes ingresar al menos una unidad")
-    
-    with tab_afiliaciones:
-        # Llamar a la nueva página de afiliaciones
-        render_affiliations_page(emp_info[0], emp_info[1])
+        </div>
+        """, unsafe_allow_html=True)
+        
+        submitted = st.form_submit_button("💾 Guardar ventas", use_container_width=True)
+        
+        if submitted:
+            if total > 0:
+                success = execute_insert("""
+                    INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (emp_info[0], str(date.today()), aut, of, ma, ad))
+                
+                if success:
+                    st.success("✅ Venta registrada exitosamente!")
+                    st.balloons()
+                    st.cache_data.clear()
+                    st.rerun()
+            else:
+                st.warning("⚠️ Debes ingresar al menos una unidad")
 
 def page_mi_desempeno():
     st.title("📊 Mi Desempeño Personal - AIS")
@@ -1408,158 +1363,9 @@ def page_reportes():
             st.plotly_chart(fig, use_container_width=True)
 
 # ============= PIE DE PÁGINA =============
-def show_footer():
-    """Mostrar pie de página con información de la aplicación"""
-    
-    # Estilos adicionales para el footer
-    st.markdown("""
-    <style>
-    .footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        text-align: center;
-        padding: 8px 0;
-        font-size: 13px;
-        z-index: 1000;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        border-top: 1px solid rgba(255,255,255,0.1);
-        margin-top: 20px;
-    }
-    
-    .footer-content {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 20px;
-        flex-wrap: wrap;
-    }
-    
-    .footer-item {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        color: white;
-        text-decoration: none;
-        transition: all 0.3s ease;
-    }
-    
-    .footer-item:hover {
-        transform: translateY(-2px);
-        color: #ffd700;
-    }
-    
-    .footer-divider {
-        color: rgba(255,255,255,0.5);
-        font-weight: bold;
-        margin: 0 5px;
-    }
-    
-    /* Ajustar el padding inferior del contenido principal */
-    .main-content {
-        padding-bottom: 60px;
-    }
-    
-    /* Estilo para el separador del footer */
-    .footer-separator {
-        height: 2px;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
-        margin: 10px 0;
-        width: 100%;
-    }
-    
-    /* Tooltip para información adicional */
-    .footer-tooltip {
-        position: relative;
-        display: inline-block;
-    }
-    
-    .footer-tooltip .tooltiptext {
-        visibility: hidden;
-        width: 200px;
-        background-color: #333;
-        color: #fff;
-        text-align: center;
-        border-radius: 6px;
-        padding: 8px;
-        position: absolute;
-        z-index: 1;
-        bottom: 125%;
-        left: 50%;
-        margin-left: -100px;
-        opacity: 0;
-        transition: opacity 0.3s;
-        font-size: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        pointer-events: none;
-    }
-    
-    .footer-tooltip:hover .tooltiptext {
-        visibility: visible;
-        opacity: 1;
-    }
-    </style>
-    
-    <div class="footer">
-        <div class="footer-separator"></div>
-        <div class="footer-content">
-            <span class="footer-item">
-                <span>🏥</span> Locatel Restrepo
-            </span>
-            
-            <span class="footer-divider">|</span>
-            
-            <span class="footer-item footer-tooltip">
-                <span>📅</span> 
-                <span id="current-date"></span>
-                <span class="tooltiptext">Fecha actual del sistema</span>
-            </span>
-            
-            <span class="footer-divider">|</span>
-            
-            <span class="footer-item">
-                <span>👥</span> Equipo AIS
-            </span>
-            
-            <span class="footer-divider">|</span>
-            
-            <span class="footer-item footer-tooltip">
-                <span>⚡</span> 
-                <span id="version">v2.0.0</span>
-                <span class="tooltiptext">Versión de la aplicación</span>
-            </span>
-            
-            <span class="footer-divider">|</span>
-            
-            <span class="footer-item">
-                <span>🛡️</span> 
-                <span>Sistema de Ventas</span>
-            </span>
-        </div>
-        <div style="font-size: 11px; margin-top: 3px; opacity: 0.8;">
-            © 2024 Locatel Restrepo - Todos los derechos reservados
-        </div>
-    </div>
-    
-    <script>
-    // Actualizar la fecha en el footer
-    const dateElement = document.getElementById('current-date');
-    if (dateElement) {
-        const now = new Date();
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        dateElement.textContent = now.toLocaleDateString('es-ES', options);
-    }
-    </script>
-    """, unsafe_allow_html=True)
-
-# Versión simplificada y más compacta del footer
 def show_footer_simple():
     """Versión simplificada del pie de página"""
     
-    # Verificar si el usuario está autenticado para mostrar info adicional
     user_info = ""
     if st.session_state.user:
         role_icon = "👑" if st.session_state.user["role"] == "admin" else "👤"
@@ -1628,7 +1434,6 @@ def show_footer_simple():
     </div>
     """, unsafe_allow_html=True)
 
-# Versión con indicadores en tiempo real
 def show_footer_advanced():
     """Versión avanzada del footer con estadísticas en tiempo real"""
     
@@ -1636,9 +1441,7 @@ def show_footer_advanced():
         return show_footer_simple()
     
     try:
-        # Obtener estadísticas rápidas para mostrar en el footer
         if st.session_state.user["role"] == "admin":
-            # Estadísticas globales
             ventas_hoy = execute_query("""
                 SELECT COUNT(*), SUM(autoliquidable + oferta + marca + adicional)
                 FROM sales WHERE date = ?
@@ -1649,7 +1452,6 @@ def show_footer_advanced():
             
             stats = f"📊 Hoy: {ventas_count} ventas | {ventas_total} uni"
         else:
-            # Estadísticas personales
             emp_info = get_employee_info(st.session_state.user["id"])
             if emp_info:
                 ventas_hoy = execute_query("""
@@ -1747,7 +1549,6 @@ def show_footer_advanced():
     </div>
     """, unsafe_allow_html=True)
 
-# Función para mostrar el footer según preferencia
 def show_footer_selector(version="advanced"):
     """
     Mostrar diferentes versiones del footer
@@ -1758,77 +1559,7 @@ def show_footer_selector(version="advanced"):
     elif version == "advanced":
         show_footer_advanced()
     else:
-        show_footer()
-
-def page_affiliations_admin():
-    """Página de administración de afiliaciones"""
-    st.title("📋 Administración de Afiliaciones")
-    
-    from affiliations import get_all_affiliations_summary
-    
-    # Selector de período
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        periodo = st.selectbox("Período", ["Este mes", "Este trimestre", "Este año", "Todo"])
-    
-    # Calcular fechas según período
-    hoy = date.today()
-    if periodo == "Este mes":
-        start_date = date(hoy.year, hoy.month, 1)
-        end_date = hoy
-    elif periodo == "Este trimestre":
-        trimestre = (hoy.month - 1) // 3
-        start_date = date(hoy.year, trimestre * 3 + 1, 1)
-        end_date = hoy
-    elif periodo == "Este año":
-        start_date = date(hoy.year, 1, 1)
-        end_date = hoy
-    else:
-        start_date = None
-        end_date = None
-    
-    # Obtener resumen
-    df_summary = get_all_affiliations_summary(start_date, end_date)
-    
-    if not df_summary.empty and df_summary['Total afiliaciones'].sum() > 0:
-        # Métricas globales
-        col_met1, col_met2, col_met3, col_met4 = st.columns(4)
-        with col_met1:
-            empleados_activos = len(df_summary[df_summary['Total afiliaciones'] > 0])
-            st.metric("Empleados activos", empleados_activos)
-        with col_met2:
-            st.metric("Total afiliaciones", int(df_summary['Total afiliaciones'].sum()))
-        with col_met3:
-            st.metric("Total puntos", int(df_summary['Total puntos'].sum()))
-        with col_met4:
-            if empleados_activos > 0:
-                promedio = df_summary[df_summary['Total afiliaciones'] > 0]['Total afiliaciones'].mean()
-                st.metric("Promedio x empleado", f"{promedio:.1f}")
-        
-        # Ranking
-        st.subheader("🏆 Ranking de afiliaciones")
-        df_ranking = df_summary.nlargest(10, 'Total afiliaciones')[
-            ['Empleado', 'Departamento', 'Total afiliaciones', 'Total puntos']
-        ].copy()
-        df_ranking['Posición'] = range(1, len(df_ranking) + 1)
-        st.dataframe(
-            df_ranking[['Posición', 'Empleado', 'Departamento', 'Total afiliaciones', 'Total puntos']],
-            use_container_width=True,
-            hide_index=True
-        )
-        
-        # Gráfico
-        fig = px.bar(
-            df_ranking,
-            x='Empleado',
-            y='Total afiliaciones',
-            color='Departamento',
-            title="Top 10 - Afiliaciones por empleado",
-            text_auto=True
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("📭 No hay datos de afiliaciones en el período seleccionado")
+        show_footer_simple()
 
 # ---------------- CONTROL PRINCIPAL ---------------- #
 def main():
@@ -1842,7 +1573,7 @@ def main():
     if not st.session_state.user:
         show_login()
     else:
-        show_menu()  # Esta función ya contiene TODO (menú + keep-alive)
+        show_menu()
         
         # Contenido principal
         st.markdown('<div style="padding: 20px;">', unsafe_allow_html=True)
@@ -1853,8 +1584,7 @@ def main():
             "Empleados": page_empleados,
             "Usuarios": page_usuarios,
             "Reportes": page_reportes,
-            "Backups": render_backup_page,  # NUEVA PÁGINA
-            "Afiliaciones": page_affiliations_admin,
+            "Backups": render_backup_page,
             "Registrar ventas": page_registrar_ventas,
             "Mi desempeño": page_mi_desempeno,
             "Mi perfil": page_mi_perfil
