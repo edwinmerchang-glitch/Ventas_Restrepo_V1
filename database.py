@@ -85,6 +85,138 @@ def create_tables():
     finally:
         if conn:
             conn.close()
+# Agregar después de create_tables() o dentro de migrate_database()
+
+def create_affiliations_tables():
+    """Crear tablas para el sistema de afiliaciones"""
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        # Tabla de metas de afiliación por empleado
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS affiliation_goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            year INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            monthly_goal INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+            UNIQUE(employee_id, year, month)
+        )
+        """)
+
+        # Tabla de tipos de afiliación
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS affiliation_types (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            points_value REAL DEFAULT 1.0,
+            is_active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # Tabla de registro de afiliaciones
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS affiliations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            affiliation_type_id INTEGER NOT NULL,
+            quantity INTEGER NOT NULL DEFAULT 1,
+            registration_date TEXT NOT NULL,
+            observations TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+            FOREIGN KEY (affiliation_type_id) REFERENCES affiliation_types(id) ON DELETE CASCADE
+        )
+        """)
+
+        # Insertar tipos de afiliación por defecto
+        default_types = [
+            ("Afiliación Tradicional", "Afiliación regular al POS", 1.0),
+            ("Afiliación Especial", "Afiliación con beneficios adicionales", 1.5),
+            ("Reactivación", "Reactivación de afiliación vencida", 0.8),
+            ("Portabilidad", "Portabilidad desde otra EPS", 1.2),
+            ("Beneficiario", "Afiliación de beneficiario", 0.5)
+        ]
+        
+        for type_name, desc, points in default_types:
+            try:
+                cur.execute("""
+                    INSERT OR IGNORE INTO affiliation_types (name, description, points_value)
+                    VALUES (?, ?, ?)
+                """, (type_name, desc, points))
+            except:
+                pass
+
+        conn.commit()
+        print("✅ Tablas de afiliaciones creadas/verificadas correctamente")
+        
+    except Exception as e:
+        print(f"❌ Error creando tablas de afiliaciones: {e}")
+        if conn:
+            conn.rollback()
+        raise
+    finally:
+        if conn:
+            conn.close()
+
+# Modificar la función migrate_database para incluir las nuevas tablas
+def migrate_database():
+    """Migrar base de datos existente si es necesario"""
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar y agregar columnas faltantes en employees
+        cur.execute("PRAGMA table_info(employees)")
+        columns = [column[1] for column in cur.fetchall()]
+        
+        if 'position' not in columns:
+            cur.execute("ALTER TABLE employees ADD COLUMN position TEXT DEFAULT 'Sin cargo'")
+            print("✅ Columna 'position' agregada a employees")
+        
+        if 'department' not in columns:
+            cur.execute("ALTER TABLE employees ADD COLUMN department TEXT DEFAULT 'Sin departamento'")
+            print("✅ Columna 'department' agregada a employees")
+        
+        if 'created_at' not in columns:
+            cur.execute("ALTER TABLE employees ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            print("✅ Columna 'created_at' agregada a employees")
+            
+        # Agregar columna de meta de afiliaciones si no existe
+        if 'affiliation_goal' not in columns:
+            cur.execute("ALTER TABLE employees ADD COLUMN affiliation_goal INTEGER DEFAULT 0")
+            print("✅ Columna 'affiliation_goal' agregada a employees")
+        
+        # Verificar y agregar columnas en sales
+        cur.execute("PRAGMA table_info(sales)")
+        columns = [column[1] for column in cur.fetchall()]
+        
+        if 'created_at' not in columns:
+            cur.execute("ALTER TABLE sales ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            print("✅ Columna 'created_at' agregada a sales")
+        
+        conn.commit()
+        
+        # Crear tablas de afiliaciones
+        create_affiliations_tables()
+        
+        print("✅ Migración completada exitosamente")
+        
+    except Exception as e:
+        print(f"❌ Error en migración: {e}")
+        if conn:
+            conn.rollback()
+    finally:
+        if conn:
+            conn.close()
 
 def migrate_database():
     """Migrar base de datos existente si es necesario"""

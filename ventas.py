@@ -9,6 +9,8 @@ import time
 # Al principio, con los otros import
 from keep_alive import init_keep_alive, render_keep_alive_status
 from backup_manager import render_backup_page
+# Al principio, después de los otros imports
+from affiliations import render_affiliations_page
 
 # Configuración de página
 # Configuración de página - MODIFICADA
@@ -142,7 +144,7 @@ def get_employee_info(user_id):
         conn = get_connection()
         cur = conn.cursor()
         cur.execute("""
-            SELECT id, name, position, department, goal 
+            SELECT id, name, position, department, goal, affiliation_goal 
             FROM employees 
             WHERE user_id = ?
         """, (user_id,))
@@ -483,6 +485,7 @@ def show_menu():
                    ("🧑‍ Empleados", "Empleados"),
                    ("👥 Usuarios", "Usuarios"),
                    ("📊 Reportes", "Reportes"),
+                   ("📋 Afiliaciones", "Afiliaciones"),
                    ("💾 Backups", "Backups")  # NUEVA OPCIÓN
                 ]	
             else:
@@ -1195,7 +1198,7 @@ def page_ranking():
     )
 
 def page_registrar_ventas():
-    st.title("📝 Registro Diario de Ventas - AIS")
+    st.title("📝 Registro de Ventas y Afiliaciones - AIS")
     
     emp_info = get_employee_info(st.session_state.user["id"])
     
@@ -1211,71 +1214,79 @@ def page_registrar_ventas():
         <p>
             <span class="badge {badge_class}">{emp_info[2]}</span>
             <span class="badge badge-depto">{emp_info[3]}</span>
-            🎯 Meta mensual: {emp_info[4]} unidades
+            🎯 Meta ventas: {emp_info[4]} unidades | 🎯 Meta afiliaciones: {emp_info[5] if len(emp_info) > 5 else 0}
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Verificar registro hoy
-    result = execute_query(
-        "SELECT COUNT(*) FROM sales WHERE employee_id = ? AND date = ?",
-        (emp_info[0], str(date.today()))
-    )
-    ya_registro_hoy = result[0][0] > 0 if result else False
+    # Crear tabs para ventas y afiliaciones
+    tab_ventas, tab_afiliaciones = st.tabs(["💰 Registrar Ventas", "📋 Registrar Afiliaciones"])
     
-    if ya_registro_hoy:
-        st.warning("⚠️ Ya has registrado ventas hoy. ¿Deseas agregar más?")
-    
-    with st.form("ventas_form"):
-        st.subheader("Ingresa las ventas del día")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            aut = st.number_input("📦 Autoliquidable", min_value=0, step=1, value=0)
-            ma = st.number_input("🏷 Marca Propia", min_value=0, step=1, value=0)
-        
-        with col2:
-            of = st.number_input("🔥 Oferta Semana", min_value=0, step=1, value=0)
-            ad = st.number_input("➕ Producto Adicional", min_value=0, step=1, value=0)
-        
-        total = aut + of + ma + ad
-        
-        # Progreso mensual
-        mes_actual = date.today().strftime("%Y-%m")
+    with tab_ventas:
+        # Verificar registro hoy
         result = execute_query(
-            "SELECT SUM(autoliquidable + oferta + marca + adicional) FROM sales WHERE employee_id = ? AND date LIKE ?",
-            (emp_info[0], f"{mes_actual}%")
+            "SELECT COUNT(*) FROM sales WHERE employee_id = ? AND date = ?",
+            (emp_info[0], str(date.today()))
         )
-        ventas_mes = result[0][0] or 0 if result else 0
+        ya_registro_hoy = result[0][0] > 0 if result else False
         
-        progreso = ((ventas_mes + total) / emp_info[4] * 100) if emp_info[4] > 0 else 0
+        if ya_registro_hoy:
+            st.warning("⚠️ Ya has registrado ventas hoy. ¿Deseas agregar más?")
         
-        st.markdown(f"""
-        <div style="margin: 20px 0;">
-            <p><strong>Total del día:</strong> {total} unidades</p>
-            <p><strong>Progreso mensual:</strong> {ventas_mes + total} / {emp_info[4]} unidades ({progreso:.1f}%)</p>
-            <div class="progress">
-                <div class="progress-bar" style="width: {min(progreso, 100)}%;"></div>
+        with st.form("ventas_form"):
+            st.subheader("Ingresa las ventas del día")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                aut = st.number_input("📦 Autoliquidable", min_value=0, step=1, value=0)
+                ma = st.number_input("🏷 Marca Propia", min_value=0, step=1, value=0)
+            
+            with col2:
+                of = st.number_input("🔥 Oferta Semana", min_value=0, step=1, value=0)
+                ad = st.number_input("➕ Producto Adicional", min_value=0, step=1, value=0)
+            
+            total = aut + of + ma + ad
+            
+            # Progreso mensual
+            mes_actual = date.today().strftime("%Y-%m")
+            result = execute_query(
+                "SELECT SUM(autoliquidable + oferta + marca + adicional) FROM sales WHERE employee_id = ? AND date LIKE ?",
+                (emp_info[0], f"{mes_actual}%")
+            )
+            ventas_mes = result[0][0] or 0 if result else 0
+            
+            progreso = ((ventas_mes + total) / emp_info[4] * 100) if emp_info[4] > 0 else 0
+            
+            st.markdown(f"""
+            <div style="margin: 20px 0;">
+                <p><strong>Total del día:</strong> {total} unidades</p>
+                <p><strong>Progreso mensual:</strong> {ventas_mes + total} / {emp_info[4]} unidades ({progreso:.1f}%)</p>
+                <div class="progress">
+                    <div class="progress-bar" style="width: {min(progreso, 100)}%;"></div>
+                </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        submitted = st.form_submit_button("💾 Guardar ventas", use_container_width=True)
-        
-        if submitted:
-            if total > 0:
-                success = execute_insert("""
-                    INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (emp_info[0], str(date.today()), aut, of, ma, ad))
-                
-                if success:
-                    st.success("✅ Venta registrada exitosamente!")
-                    st.balloons()
-                    st.cache_data.clear()
-                    st.rerun()
-            else:
-                st.warning("⚠️ Debes ingresar al menos una unidad")
+            """, unsafe_allow_html=True)
+            
+            submitted = st.form_submit_button("💾 Guardar ventas", use_container_width=True)
+            
+            if submitted:
+                if total > 0:
+                    success = execute_insert("""
+                        INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (emp_info[0], str(date.today()), aut, of, ma, ad))
+                    
+                    if success:
+                        st.success("✅ Venta registrada exitosamente!")
+                        st.balloons()
+                        st.cache_data.clear()
+                        st.rerun()
+                else:
+                    st.warning("⚠️ Debes ingresar al menos una unidad")
+    
+    with tab_afiliaciones:
+        # Llamar a la nueva página de afiliaciones
+        render_affiliations_page(emp_info[0], emp_info[1])
 
 def page_mi_desempeno():
     st.title("📊 Mi Desempeño Personal - AIS")
@@ -1773,6 +1784,7 @@ def main():
             "Usuarios": page_usuarios,
             "Reportes": page_reportes,
             "Backups": render_backup_page,  # NUEVA PÁGINA
+            "Afiliaciones": page_affiliations_admin,
             "Registrar ventas": page_registrar_ventas,
             "Mi desempeño": page_mi_desempeno,
             "Mi perfil": page_mi_perfil
