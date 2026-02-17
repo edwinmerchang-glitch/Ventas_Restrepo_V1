@@ -1,33 +1,15 @@
-# Agregar esta función a database.py
+import sqlite3
+import os
+from datetime import datetime
 
-def create_afiliaciones_table():
-    """Crear tabla de afiliaciones si no existe"""
-    conn = get_connection()
-    cur = conn.cursor()
-    
-    # Crear tabla de afiliaciones
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS afiliaciones (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            employee_id INTEGER NOT NULL,
-            fecha DATE NOT NULL,
-            cantidad INTEGER NOT NULL DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE,
-            UNIQUE(employee_id, fecha)
-        )
-    """)
-    
-    # Agregar columna de meta_afiliaciones a employees si no existe
-    try:
-        cur.execute("ALTER TABLE employees ADD COLUMN meta_afiliaciones INTEGER DEFAULT 50")
-    except sqlite3.OperationalError:
-        pass  # La columna ya existe
-    
-    conn.commit()
-    conn.close()
+DB_PATH = "ventas.db"
 
-# Modificar la función create_tables() para incluir la nueva tabla
+def get_connection():
+    """Obtener conexión a la base de datos"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
 def create_tables():
     """Crear todas las tablas necesarias"""
     conn = get_connection()
@@ -88,3 +70,46 @@ def create_tables():
     
     conn.commit()
     conn.close()
+
+def migrate_database():
+    """Agregar columnas nuevas si no existen"""
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    # Agregar columna meta_afiliaciones a employees si no existe
+    try:
+        cur.execute("ALTER TABLE employees ADD COLUMN meta_afiliaciones INTEGER DEFAULT 50")
+        print("Columna meta_afiliaciones agregada a employees")
+    except sqlite3.OperationalError:
+        # La columna ya existe
+        pass
+    
+    conn.commit()
+    conn.close()
+
+def verify_database():
+    """Verificar que la base de datos esté correctamente configurada"""
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    # Verificar tablas
+    tables = ['users', 'employees', 'sales', 'afiliaciones']
+    for table in tables:
+        cur.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
+        if cur.fetchone() is None:
+            print(f"Tabla {table} no encontrada, creando...")
+            create_tables()
+            break
+    
+    conn.close()
+    print("✅ Base de datos verificada correctamente")
+
+def init_database():
+    """Inicializar la base de datos"""
+    create_tables()
+    migrate_database()
+    verify_database()
+    print("✅ Base de datos inicializada correctamente")
+
+if __name__ == "__main__":
+    init_database()
