@@ -230,10 +230,7 @@ def page_registrar_afiliaciones():
     badge_class = get_badge_class(emp_info[2])
     
     # Obtener meta de afiliaciones (por defecto 50 si no existe)
-    meta_afiliaciones = emp_info[5] if len(emp_info) > 5 else 50
-    
-    # Obtener afiliaciones actuales
-    afiliaciones_hoy, afiliaciones_mes = get_afiliaciones_info(emp_info[0])
+    meta_afiliaciones = emp_info[5] if len(emp_info) > 5 and emp_info[5] else 50
     
     st.markdown(f"""
     <div class="card">
@@ -241,57 +238,162 @@ def page_registrar_afiliaciones():
         <p>
             <span class="badge {badge_class}">{emp_info[2]}</span>
             <span class="badge badge-depto">{emp_info[3]}</span>
+            🎯 Meta mensual de afiliaciones: {meta_afiliaciones}
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Mostrar progreso actual
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Afiliaciones hoy", afiliaciones_hoy)
-    with col2:
-        progreso_mes = (afiliaciones_mes / meta_afiliaciones * 100) if meta_afiliaciones > 0 else 0
-        st.metric("Progreso mensual", f"{afiliaciones_mes}/{meta_afiliaciones} ({progreso_mes:.1f}%)")
+    # Selector de fecha (no puede ser futura)
+    col_fecha1, col_fecha2 = st.columns([2, 2])
+    with col_fecha1:
+        fecha_registro = st.date_input(
+            "📅 Fecha del registro",
+            value=date.today(),
+            max_value=date.today(),
+            help="Selecciona la fecha de las afiliaciones (no puede ser futura)"
+        )
     
-    # Barra de progreso
-    st.progress(min(progreso_mes / 100, 1.0))
+    # Verificar si ya existe registro para la fecha seleccionada
+    result = execute_query(
+        "SELECT COUNT(*) FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
+        (emp_info[0], str(fecha_registro))
+    )
+    ya_registro = result[0][0] > 0 if result else False
     
-    st.divider()
+    if ya_registro:
+        if fecha_registro == date.today():
+            st.warning("⚠️ Ya has registrado afiliaciones hoy. Puedes agregar más.")
+        else:
+            st.warning(f"⚠️ Ya hay afiliaciones registradas para el {fecha_registro.strftime('%d/%m/%Y')}. Puedes agregar más.")
     
-    # Formulario de registro
     with st.form("afiliaciones_form"):
-        st.subheader("📝 Registrar nuevas afiliaciones")
+        st.subheader(f"Ingresa las afiliaciones del {fecha_registro.strftime('%d/%m/%Y')}")
         
         cantidad = st.number_input(
             "Cantidad de afiliaciones realizadas",
-            min_value=1,
+            min_value=0,
             step=1,
             value=1,
             help="Ingresa el número de afiliaciones que realizaste"
         )
         
-        fecha_registro = st.date_input(
-            "Fecha del registro",
-            value=date.today(),
-            max_value=date.today()
+        # Obtener afiliaciones del mes (basado en la fecha seleccionada)
+        mes_actual = fecha_registro.strftime("%Y-%m")
+        result_mes = execute_query(
+            "SELECT SUM(cantidad) FROM afiliaciones WHERE employee_id = ? AND fecha LIKE ?",
+            (emp_info[0], f"{mes_actual}%")
         )
+        afiliaciones_mes = result_mes[0][0] or 0 if result_mes else 0
         
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
+        # Si estamos editando un día existente, restar las afiliaciones de ese día para no contar doble
+        if ya_registro:
+            afiliaciones_dia_existentes = execute_query(
+                "SELECT cantidad FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
+                (emp_info[0], str(fecha_registro))
+            )
+            if afiliaciones_dia_existentes:
+                cantidad_existente = afiliaciones_dia_existentes[0][0]
+                afiliaciones_mes_ajustadas = afiliaciones_mes - cantidad_existente + cantidad
+            else:
+                afiliaciones_mes_ajustadas = afiliaciones_mes + cantidad
+        else:
+            afiliaciones_mes_ajustadas = afiliaciones_mes + cantidad
+        
+        progreso_mes = (afiliaciones_mes_ajustadas / meta_afiliaciones * 100) if meta_afiliaciones > 0 else 0
+        
+        st.markdown(f"""
+        <div style="margin: 20px 0;">
+            <p><strong>Total del día:</strong> {cantidad} afiliaciones</p>
+            <p><strong>Progreso mensual:</strong> {afiliaciones_mes_ajustadas} / {meta_afiliaciones} ({progreso_mes:.1f}%)</p>
+            <div class="progress">
+                <div class="progress-bar" style="width: {min(progreso_mes, 100)}%;"></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+        with col_btn2:
             submitted = st.form_submit_button("💾 Registrar afiliaciones", use_container_width=True, type="primary")
         
         if submitted:
             if cantidad > 0:
-                success = registrar_afiliacion(emp_info[0], cantidad, fecha_registro)
-                
-                if success:
-                    st.success(f"✅ {cantidad} afiliación(es) registrada(s) exitosamente!")
-                    st.balloons()
-                    st.cache_data.clear()
-                    time.sleep(1)
-                    st.rerun()
+                if ya_registro:
+                    # Actualizar registro existente
+                    success = execute_insert(
+                        "UPDATE afiliaciones SET cantidad = ? WHERE employee_id = ? AND fecha = ?",
+                        (cantidad, emp_info[0], str(fecha_registro))
+                    )
+                    
+                    if success:
+                        st.success(f"✅ Afiliaciones actualizadas exitosamente para el {fecha_registro.strftime('%d/%m/%Y')}!")
+                        st.balloons()
+                        st.cache_data.clear()
+                        time.sleep(1)
+                        st.rerun()
+                else:
+                    # Crear nuevo registro
+                    success = execute_insert(
+                        "INSERT INTO afiliaciones (employee_id, fecha, cantidad) VALUES (?, ?, ?)",
+                        (emp_info[0], str(fecha_registro), cantidad)
+                    )
+                    
+                    if success:
+                        st.success(f"✅ {cantidad} afiliación(es) registrada(s) exitosamente para el {fecha_registro.strftime('%d/%m/%Y')}!")
+                        st.balloons()
+                        st.cache_data.clear()
+                        time.sleep(1)
+                        st.rerun()
             else:
                 st.warning("⚠️ Debes ingresar al menos una afiliación")
+    
+    # Mostrar historial reciente
+    st.divider()
+    st.subheader("📋 Historial de afiliaciones recientes")
+    
+    df_historial = safe_dataframe("""
+        SELECT 
+            fecha as Fecha,
+            cantidad as Afiliaciones
+        FROM afiliaciones 
+        WHERE employee_id = ? 
+        ORDER BY fecha DESC 
+        LIMIT 10
+    """, (emp_info[0],))
+    
+    if not df_historial.empty:
+        df_historial['Fecha'] = pd.to_datetime(df_historial['Fecha']).dt.strftime('%d/%m/%Y')
+        st.dataframe(df_historial, use_container_width=True, hide_index=True)
+        
+        # Opción para editar registros anteriores
+        with st.expander("✏️ Editar registro de otro día"):
+            fechas_anteriores = execute_query("""
+                SELECT DISTINCT fecha 
+                FROM afiliaciones 
+                WHERE employee_id = ? AND fecha < ?
+                ORDER BY fecha DESC
+            """, (emp_info[0], date.today()))
+            
+            if fechas_anteriores:
+                fechas_opciones = [fecha[0] for fecha in fechas_anteriores]
+                fecha_seleccionada = st.selectbox(
+                    "Selecciona una fecha para editar",
+                    options=fechas_opciones,
+                    format_func=lambda x: datetime.strptime(x, '%Y-%m-%d').strftime('%d/%m/%Y')
+                )
+                
+                if st.button("📝 Cargar registro para editar", use_container_width=True):
+                    # Cargar los datos de esa fecha
+                    datos = execute_query(
+                        "SELECT cantidad FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
+                        (emp_info[0], fecha_seleccionada)
+                    )
+                    
+                    if datos:
+                        st.session_state['editar_fecha_afiliacion'] = fecha_seleccionada
+                        st.session_state['editar_cantidad'] = datos[0][0]
+                        st.rerun()
+    else:
+        st.info("No hay afiliaciones registradas aún")
 
 def page_mis_afiliaciones():
     """Página para que los empleados vean su historial de afiliaciones"""
