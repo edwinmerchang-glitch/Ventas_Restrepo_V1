@@ -1583,17 +1583,31 @@ def page_registrar_ventas():
     </div>
     """, unsafe_allow_html=True)
     
+    # Agregar selector de fecha
+    col_fecha1, col_fecha2 = st.columns([2, 2])
+    with col_fecha1:
+        fecha_registro = st.date_input(
+            "📅 Fecha del registro",
+            value=date.today(),
+            max_value=date.today(),
+            help="Selecciona la fecha de las ventas (no puede ser futura)"
+        )
+    
+    # Verificar si ya hay registro para la fecha seleccionada
     result = execute_query(
         "SELECT COUNT(*) FROM sales WHERE employee_id = ? AND date = ?",
-        (emp_info[0], str(date.today()))
+        (emp_info[0], str(fecha_registro))
     )
-    ya_registro_hoy = result[0][0] > 0 if result else False
+    ya_registro = result[0][0] > 0 if result else False
     
-    if ya_registro_hoy:
-        st.warning("⚠️ Ya has registrado ventas hoy. ¿Deseas agregar más?")
+    if ya_registro:
+        if fecha_registro == date.today():
+            st.warning("⚠️ Ya has registrado ventas hoy. Puedes agregar más o modificar el registro existente.")
+        else:
+            st.warning(f"⚠️ Ya hay ventas registradas para el {fecha_registro.strftime('%d/%m/%Y')}. Puedes agregar más.")
     
     with st.form("ventas_form"):
-        st.subheader("Ingresa las ventas del día")
+        st.subheader(f"Ingresa las ventas del {fecha_registro.strftime('%d/%m/%Y')}")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -1606,41 +1620,132 @@ def page_registrar_ventas():
         
         total = aut + of + ma + ad
         
-        mes_actual = date.today().strftime("%Y-%m")
+        # Obtener ventas del mes actual (basado en la fecha seleccionada)
+        mes_actual = fecha_registro.strftime("%Y-%m")
         result = execute_query(
             "SELECT SUM(autoliquidable + oferta + marca + adicional) FROM sales WHERE employee_id = ? AND date LIKE ?",
             (emp_info[0], f"{mes_actual}%")
         )
         ventas_mes = result[0][0] or 0 if result else 0
         
-        progreso = ((ventas_mes + total) / emp_info[4] * 100) if emp_info[4] > 0 else 0
+        # Si estamos editando un día existente, restar las ventas de ese día para no contar doble
+        if ya_registro:
+            ventas_dia_existentes = execute_query(
+                "SELECT autoliquidable, oferta, marca, adicional FROM sales WHERE employee_id = ? AND date = ?",
+                (emp_info[0], str(fecha_registro))
+            )
+            if ventas_dia_existentes:
+                ventas_existentes = sum(ventas_dia_existentes[0])
+                ventas_mes_ajustadas = ventas_mes - ventas_existentes + total
+            else:
+                ventas_mes_ajustadas = ventas_mes + total
+        else:
+            ventas_mes_ajustadas = ventas_mes + total
+        
+        progreso = (ventas_mes_ajustadas / emp_info[4] * 100) if emp_info[4] > 0 else 0
         
         st.markdown(f"""
         <div style="margin: 20px 0;">
             <p><strong>Total del día:</strong> {total} unidades</p>
-            <p><strong>Progreso mensual:</strong> {ventas_mes + total} / {emp_info[4]} unidades ({progreso:.1f}%)</p>
+            <p><strong>Progreso mensual:</strong> {ventas_mes_ajustadas} / {emp_info[4]} unidades ({progreso:.1f}%)</p>
             <div class="progress">
                 <div class="progress-bar" style="width: {min(progreso, 100)}%;"></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        submitted = st.form_submit_button("💾 Guardar ventas", use_container_width=True)
+        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+        with col_btn2:
+            submitted = st.form_submit_button("💾 Guardar ventas", use_container_width=True, type="primary")
         
         if submitted:
             if total > 0:
-                success = execute_insert("""
-                    INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (emp_info[0], str(date.today()), aut, of, ma, ad))
-                
-                if success:
-                    st.success("✅ Venta registrada exitosamente!")
-                    st.balloons()
-                    st.cache_data.clear()
-                    st.rerun()
+                if ya_registro:
+                    # Actualizar registro existente
+                    success = execute_insert("""
+                        UPDATE sales 
+                        SET autoliquidable = ?, oferta = ?, marca = ?, adicional = ?
+                        WHERE employee_id = ? AND date = ?
+                    """, (aut, of, ma, ad, emp_info[0], str(fecha_registro)))
+                    
+                    if success:
+                        st.success(f"✅ Ventas actualizadas exitosamente para el {fecha_registro.strftime('%d/%m/%Y')}!")
+                        st.balloons()
+                        st.cache_data.clear()
+                        time.sleep(1)
+                        st.rerun()
+                else:
+                    # Crear nuevo registro
+                    success = execute_insert("""
+                        INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (emp_info[0], str(fecha_registro), aut, of, ma, ad))
+                    
+                    if success:
+                        st.success(f"✅ Ventas registradas exitosamente para el {fecha_registro.strftime('%d/%m/%Y')}!")
+                        st.balloons()
+                        st.cache_data.clear()
+                        time.sleep(1)
+                        st.rerun()
             else:
                 st.warning("⚠️ Debes ingresar al menos una unidad")
+    
+    # Mostrar historial reciente
+    st.divider()
+    st.subheader("📋 Historial de ventas recientes")
+    
+    df_historial = safe_dataframe("""
+        SELECT 
+            date as Fecha,
+            autoliquidable as Autoliquidable,
+            oferta as Oferta,
+            marca as 'Marca Propia',
+            adicional as Adicional,
+            (autoliquidable + oferta + marca + adicional) as Total
+        FROM sales 
+        WHERE employee_id = ? 
+        ORDER BY date DESC 
+        LIMIT 10
+    """, (emp_info[0],))
+    
+    if not df_historial.empty:
+        df_historial['Fecha'] = pd.to_datetime(df_historial['Fecha']).dt.strftime('%d/%m/%Y')
+        st.dataframe(df_historial, use_container_width=True, hide_index=True)
+        
+        # Opción para editar registros anteriores
+        with st.expander("✏️ Editar registro de otro día"):
+            fechas_anteriores = execute_query("""
+                SELECT DISTINCT date 
+                FROM sales 
+                WHERE employee_id = ? AND date < ?
+                ORDER BY date DESC
+            """, (emp_info[0], date.today()))
+            
+            if fechas_anteriores:
+                fechas_opciones = [fecha[0] for fecha in fechas_anteriores]
+                fecha_seleccionada = st.selectbox(
+                    "Selecciona una fecha para editar",
+                    options=fechas_opciones,
+                    format_func=lambda x: datetime.strptime(x, '%Y-%m-%d').strftime('%d/%m/%Y')
+                )
+                
+                if st.button("📝 Cargar registro para editar", use_container_width=True):
+                    # Cargar los datos de esa fecha
+                    datos = execute_query("""
+                        SELECT autoliquidable, oferta, marca, adicional
+                        FROM sales 
+                        WHERE employee_id = ? AND date = ?
+                    """, (emp_info[0], fecha_seleccionada))
+                    
+                    if datos:
+                        st.session_state['editar_fecha'] = fecha_seleccionada
+                        st.session_state['editar_aut'] = datos[0][0]
+                        st.session_state['editar_of'] = datos[0][1]
+                        st.session_state['editar_ma'] = datos[0][2]
+                        st.session_state['editar_ad'] = datos[0][3]
+                        st.rerun()
+    else:
+        st.info("No hay ventas registradas aún")
 
 def page_mi_desempeno():
     st.title("📊 Mi Desempeño Personal - AIS")
