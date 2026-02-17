@@ -1760,6 +1760,76 @@ def show_footer_selector(version="advanced"):
     else:
         show_footer()
 
+def page_affiliations_admin():
+    """Página de administración de afiliaciones"""
+    st.title("📋 Administración de Afiliaciones")
+    
+    from affiliations import get_all_affiliations_summary
+    
+    # Selector de período
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        periodo = st.selectbox("Período", ["Este mes", "Este trimestre", "Este año", "Todo"])
+    
+    # Calcular fechas según período
+    hoy = date.today()
+    if periodo == "Este mes":
+        start_date = date(hoy.year, hoy.month, 1)
+        end_date = hoy
+    elif periodo == "Este trimestre":
+        trimestre = (hoy.month - 1) // 3
+        start_date = date(hoy.year, trimestre * 3 + 1, 1)
+        end_date = hoy
+    elif periodo == "Este año":
+        start_date = date(hoy.year, 1, 1)
+        end_date = hoy
+    else:
+        start_date = None
+        end_date = None
+    
+    # Obtener resumen
+    df_summary = get_all_affiliations_summary(start_date, end_date)
+    
+    if not df_summary.empty and df_summary['Total afiliaciones'].sum() > 0:
+        # Métricas globales
+        col_met1, col_met2, col_met3, col_met4 = st.columns(4)
+        with col_met1:
+            empleados_activos = len(df_summary[df_summary['Total afiliaciones'] > 0])
+            st.metric("Empleados activos", empleados_activos)
+        with col_met2:
+            st.metric("Total afiliaciones", int(df_summary['Total afiliaciones'].sum()))
+        with col_met3:
+            st.metric("Total puntos", int(df_summary['Total puntos'].sum()))
+        with col_met4:
+            if empleados_activos > 0:
+                promedio = df_summary[df_summary['Total afiliaciones'] > 0]['Total afiliaciones'].mean()
+                st.metric("Promedio x empleado", f"{promedio:.1f}")
+        
+        # Ranking
+        st.subheader("🏆 Ranking de afiliaciones")
+        df_ranking = df_summary.nlargest(10, 'Total afiliaciones')[
+            ['Empleado', 'Departamento', 'Total afiliaciones', 'Total puntos']
+        ].copy()
+        df_ranking['Posición'] = range(1, len(df_ranking) + 1)
+        st.dataframe(
+            df_ranking[['Posición', 'Empleado', 'Departamento', 'Total afiliaciones', 'Total puntos']],
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        # Gráfico
+        fig = px.bar(
+            df_ranking,
+            x='Empleado',
+            y='Total afiliaciones',
+            color='Departamento',
+            title="Top 10 - Afiliaciones por empleado",
+            text_auto=True
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("📭 No hay datos de afiliaciones en el período seleccionado")
+
 # ---------------- CONTROL PRINCIPAL ---------------- #
 def main():
     # Inicializar keep-alive
