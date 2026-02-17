@@ -1,460 +1,397 @@
-import sqlite3
-import json
-import os
-import zipfile
-from datetime import datetime
-import shutil
-from pathlib import Path
+# backup_manager.py
 import streamlit as st
-import pandas as pd
+import sqlite3
+import os
+import shutil
+from datetime import datetime
+import gzip
+import io
 from database import get_connection, DB_PATH
+import time
 
-class BackupManager:
-    def __init__(self):
-        self.backup_dir = Path(__file__).parent / "backups"
-        self.backup_dir.mkdir(exist_ok=True)
-    
-    def create_backup(self, include_files=True):
-        """
-        Crear backup completo de la base de datos y archivos
-        """
+def create_backup():
+    """Crear un backup de la base de datos"""
+    try:
+        # Crear directorio de backups si no existe
+        backup_dir = "backups"
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+        
+        # Nombre del archivo backup con timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_name = f"backup_locatel_{timestamp}"
-        backup_path = self.backup_dir / backup_name
+        backup_filename = f"backup_{timestamp}.db"
+        backup_path = os.path.join(backup_dir, backup_filename)
+        
+        # Crear backup comprimido
+        backup_gz_path = backup_path + '.gz'
+        
+        # Copiar la base de datos
+        if os.path.exists(DB_PATH):
+            # Crear una copia de seguridad
+            shutil.copy2(DB_PATH, backup_path)
+            
+            # Comprimir el backup
+            with open(backup_path, 'rb') as f_in:
+                with gzip.open(backup_gz_path, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+            
+            # Eliminar el archivo sin comprimir
+            os.remove(backup_path)
+            
+            return True, backup_gz_path, f"✅ Backup creado: {backup_filename}.gz"
+        else:
+            return False, None, "❌ No se encontró la base de datos"
+            
+    except Exception as e:
+        return False, None, f"❌ Error al crear backup: {str(e)}"
+
+def restore_backup(uploaded_file):
+    """Restaurar un backup desde archivo subido"""
+    try:
+        # Verificar que el archivo sea válido
+        if uploaded_file is None:
+            return False, "❌ No se seleccionó ningún archivo"
+        
+        # Validar extensión
+        if not uploaded_file.name.endswith('.gz'):
+            return False, "❌ El archivo debe tener extensión .gz"
+        
+        # Crear backup automático antes de restaurar
+        st.info("📦 Creando backup de seguridad antes de restaurar...")
+        backup_success, backup_path, backup_msg = create_backup()
+        if backup_success:
+            st.success(f"✅ Backup de seguridad creado: {os.path.basename(backup_path)}")
+        
+        # Leer el contenido del archivo subido
+        file_content = uploaded_file.read()
+        
+        # Descomprimir en memoria
+        try:
+            with gzip.open(io.BytesIO(file_content), 'rb') as f:
+                db_content = f.read()
+        except Exception as e:
+            return False, f"❌ El archivo no es un backup válido: {str(e)}"
+        
+        # Cerrar todas las conexiones a la base de datos
+        try:
+            # Forzar cierre de conexiones
+            sqlite3.connect(DB_PATH).close()
+        except:
+            pass
+        
+        # Crear backup del archivo actual (por si algo sale mal)
+        if os.path.exists(DB_PATH):
+            temp_backup = DB_PATH + ".temp_backup"
+            shutil.copy2(DB_PATH, temp_backup)
         
         try:
-            # Crear directorio temporal para el backup
-            temp_dir = backup_path
-            temp_dir.mkdir(exist_ok=True)
+            # Escribir el nuevo contenido
+            with open(DB_PATH, 'wb') as f:
+                f.write(db_content)
             
-            # 1. Backup de la base de datos SQLite
-            db_backup_path = temp_dir / "database.db"
-            self._backup_database(db_backup_path)
-            
-            # 2. Exportar datos a JSON (formato legible)
-            json_backup_path = temp_dir / "data_export.json"
-            self._export_to_json(json_backup_path)
-            
-            # 3. Exportar a CSV (para fácil importación en Excel)
-            csv_dir = temp_dir / "csv_exports"
-            csv_dir.mkdir(exist_ok=True)
-            self._export_to_csv(csv_dir)
-            
-            # 4. Crear archivo de metadatos
-            metadata = {
-                "fecha_backup": datetime.now().isoformat(),
-                "version_app": "2.0.0",
-                "tablas_incluidas": ["users", "employees", "sales"],
-                "incluye_archivos": include_files
-            }
-            
-            with open(temp_dir / "metadata.json", "w", encoding='utf-8') as f:
-                json.dump(metadata, f, indent=2, ensure_ascii=False)
-            
-            # 5. Comprimir todo en un ZIP
-            zip_path = self.backup_dir / f"{backup_name}.zip"
-            self._create_zip(temp_dir, zip_path)
-            
-            # 6. Limpiar directorio temporal
-            shutil.rmtree(temp_dir)
-            
-            return {
-                "success": True,
-                "path": zip_path,
-                "name": f"{backup_name}.zip",
-                "size": self._get_file_size(zip_path),
-                "timestamp": timestamp
-            }
-            
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e)
-            }
-    
-    def _backup_database(self, dest_path):
-        """Hacer backup de la base de datos SQLite"""
-        try:
-            # Hacer backup usando el módulo de sqlite3
-            source = sqlite3.connect(str(DB_PATH))
-            dest = sqlite3.connect(str(dest_path))
-            source.backup(dest)
-            source.close()
-            dest.close()
-        except Exception as e:
-            raise Exception(f"Error en backup de base de datos: {e}")
-    
-    def _export_to_json(self, json_path):
-        """Exportar todos los datos a JSON"""
-        data = {}
-        conn = get_connection()
-        
-        try:
-            # Exportar usuarios
-            users_df = pd.read_sql("SELECT * FROM users", conn)
-            data['users'] = json.loads(users_df.to_json(orient='records', date_format='iso', force_ascii=False))
-            
-            # Exportar empleados
-            employees_df = pd.read_sql("SELECT * FROM employees", conn)
-            data['employees'] = json.loads(employees_df.to_json(orient='records', date_format='iso', force_ascii=False))
-            
-            # Exportar ventas
-            sales_df = pd.read_sql("SELECT * FROM sales", conn)
-            data['sales'] = json.loads(sales_df.to_json(orient='records', date_format='iso', force_ascii=False))
-            
-            with open(json_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+            # Verificar que la base de datos restaurada sea válida
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                conn.execute("SELECT COUNT(*) FROM sqlite_master")
+                conn.close()
                 
-        finally:
-            conn.close()
-    
-    def _export_to_csv(self, csv_dir):
-        """Exportar datos a CSV"""
-        conn = get_connection()
-        
-        try:
-            # Exportar cada tabla a CSV
-            tables = ['users', 'employees', 'sales']
-            for table in tables:
-                df = pd.read_sql(f"SELECT * FROM {table}", conn)
-                csv_path = csv_dir / f"{table}.csv"
-                df.to_csv(csv_path, index=False, encoding='utf-8')
+                # Limpiar caché
+                st.cache_data.clear()
                 
-        finally:
-            conn.close()
-    
-    def _create_zip(self, source_dir, zip_path):
-        """Comprimir directorio en ZIP"""
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for root, dirs, files in os.walk(source_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, source_dir)
-                    zipf.write(file_path, arcname)
-    
-    def _get_file_size(self, file_path):
-        """Obtener tamaño del archivo en formato legible"""
-        try:
-            # Si es un objeto Path, convertirlo a string
-            if hasattr(file_path, '__fspath__') or isinstance(file_path, Path):
-                file_path = str(file_path)
-            
-            # Verificar si es un archivo que existe
-            if os.path.isfile(file_path):
-                size_bytes = os.path.getsize(file_path)
-            else:
-                # Si no es un archivo, asumimos que es un número (tamaño en bytes)
-                size_bytes = file_path if isinstance(file_path, (int, float)) else 0
-            
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size_bytes < 1024.0:
-                    return f"{size_bytes:.2f} {unit}"
-                size_bytes /= 1024.0
-            return f"{size_bytes:.2f} TB"
-        except Exception as e:
-            return "0 B"
-    
-    def list_backups(self):
-        """Listar todos los backups disponibles"""
-        backups = []
-        for file in sorted(self.backup_dir.glob("*.zip"), reverse=True):
-            stats = file.stat()
-            backups.append({
-                "name": file.name,
-                "size": self._get_file_size(file),
-                "date": datetime.fromtimestamp(stats.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
-                "path": file
-            })
-        return backups
-    
-    def restore_backup(self, zip_path, restore_type="database"):
-        """
-        Restaurar desde backup
-        restore_type: "database" (solo BD), "full" (todo)
-        """
-        try:
-            # Extraer ZIP
-            extract_dir = self.backup_dir / "temp_restore"
-            if extract_dir.exists():
-                shutil.rmtree(extract_dir)
-            extract_dir.mkdir()
-            
-            with zipfile.ZipFile(zip_path, 'r') as zipf:
-                zipf.extractall(extract_dir)
-            
-            if restore_type == "database":
-                # Restaurar solo la base de datos
-                db_file = extract_dir / "database.db"
-                if db_file.exists():
-                    # Hacer backup automático antes de restaurar
-                    pre_restore_backup = self.create_backup()
-                    
-                    # Reemplazar base de datos actual
-                    shutil.copy2(db_file, DB_PATH)
-                    
-                    shutil.rmtree(extract_dir)
-                    return {
-                        "success": True,
-                        "message": "Base de datos restaurada exitosamente",
-                        "pre_restore_backup": pre_restore_backup.get("name")
-                    }
-                else:
-                    return {"success": False, "error": "No se encontró archivo de base de datos"}
-            
-            elif restore_type == "full":
-                # Restaurar todo (futura implementación)
-                pass
+                return True, f"✅ Backup restaurado exitosamente desde: {uploaded_file.name}"
+                
+            except sqlite3.Error as e:
+                # Si hay error, restaurar el backup temporal
+                if os.path.exists(temp_backup):
+                    shutil.copy2(temp_backup, DB_PATH)
+                return False, f"❌ El archivo no contiene una base de datos válida: {str(e)}"
                 
         except Exception as e:
-            return {"success": False, "error": str(e)}
+            # Restaurar backup temporal en caso de error
+            if os.path.exists(temp_backup):
+                shutil.copy2(temp_backup, DB_PATH)
+            return False, f"❌ Error al restaurar backup: {str(e)}"
         finally:
-            if extract_dir.exists():
-                shutil.rmtree(extract_dir)
+            # Limpiar archivo temporal
+            if os.path.exists(temp_backup):
+                os.remove(temp_backup)
+                
+    except Exception as e:
+        return False, f"❌ Error general: {str(e)}"
+
+def list_backups():
+    """Listar todos los backups disponibles"""
+    backup_dir = "backups"
+    backups = []
     
-    def delete_backup(self, backup_name):
-        """Eliminar un backup"""
-        backup_path = self.backup_dir / backup_name
-        if backup_path.exists():
-            backup_path.unlink()
-            return True
-        return False
+    if os.path.exists(backup_dir):
+        files = os.listdir(backup_dir)
+        for file in files:
+            if file.startswith("backup_") and file.endswith(".gz"):
+                file_path = os.path.join(backup_dir, file)
+                size = os.path.getsize(file_path)
+                modified = datetime.fromtimestamp(os.path.getmtime(file_path))
+                backups.append({
+                    "name": file,
+                    "size": size,
+                    "modified": modified,
+                    "path": file_path
+                })
     
-    def get_backup_stats(self):
-        """Obtener estadísticas de backups"""
-        backups = self.list_backups()
-        total_size = sum([b['path'].stat().st_size for b in backups])
-        
-        return {
-            "total_backups": len(backups),
-            "total_size": self._get_file_size(total_size),  # Ahora funciona porque pasamos un número
-            "latest_backup": backups[0] if backups else None,
-            "backup_dir": str(self.backup_dir)
-        }
+    # Ordenar por fecha descendente
+    backups.sort(key=lambda x: x["modified"], reverse=True)
+    return backups
+
+def delete_backup(backup_name):
+    """Eliminar un backup específico"""
+    try:
+        backup_path = os.path.join("backups", backup_name)
+        if os.path.exists(backup_path):
+            os.remove(backup_path)
+            return True, f"✅ Backup {backup_name} eliminado"
+        else:
+            return False, "❌ El archivo no existe"
+    except Exception as e:
+        return False, f"❌ Error al eliminar: {str(e)}"
+
+def format_size(size_bytes):
+    """Formatear tamaño de archivo"""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes/1024:.1f} KB"
+    else:
+        return f"{size_bytes/(1024*1024):.1f} MB"
 
 def render_backup_page():
-    """Renderizar página de backups en Streamlit"""
+    """Renderizar la página de gestión de backups"""
     st.title("💾 Gestión de Backups")
     
-    # Inicializar manager
-    if 'backup_manager' not in st.session_state:
-        st.session_state.backup_manager = BackupManager()
-    
-    manager = st.session_state.backup_manager
-    
-    # Tabs para diferentes funcionalidades
     tab1, tab2, tab3 = st.tabs([
-        "📀 Crear Backup",
-        "📋 Listar Backups",
-        "⚙️ Configuración"
+        "📤 Crear Backup",
+        "📥 Restaurar Backup",
+        "📋 Lista de Backups"
     ])
     
-    # ===== TAB 1: CREAR BACKUP =====
+    # ===== PESTAÑA 1: CREAR BACKUP =====
     with tab1:
         st.markdown("""
-        <div class="card">
-            <h4>Crear nuevo backup</h4>
-            <p>Genera una copia de seguridad completa de todos los datos del sistema.</p>
+        <div class="card" style="background: #e8f4fd;">
+            <h4>📤 Crear nuevo backup</h4>
+            <p>Crea una copia de seguridad de la base de datos actual.</p>
         </div>
         """, unsafe_allow_html=True)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("### 📦 Incluir en el backup:")
-            include_files = st.checkbox("Incluir archivos adjuntos", value=True, 
-                                      help="Incluye imágenes y documentos adicionales")
-            include_csv = st.checkbox("Incluir exportación CSV", value=True,
-                                     help="Exporta también a formato CSV para Excel")
-        
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.markdown("### ℹ️ Información:")
-            st.info("""
-            **El backup incluirá:**
-            - Base de datos completa
-            - Usuarios y empleados
-            - Historial de ventas
-            - Metadatos del sistema
-            """)
-        
-        if st.button("🚀 Crear Backup Ahora", type="primary", use_container_width=True):
-            with st.spinner("🔄 Creando backup... Esto puede tomar unos segundos"):
-                result = manager.create_backup(include_files=include_files)
-                
-                if result["success"]:
-                    st.success(f"✅ Backup creado exitosamente!")
+            if st.button("🔄 Crear Backup Ahora", type="primary", use_container_width=True):
+                with st.spinner("Creando backup..."):
+                    success, backup_path, message = create_backup()
+                    
+                if success:
+                    st.success(message)
                     st.balloons()
                     
-                    # Mostrar detalles
+                    # Botón para descargar
+                    with open(backup_path, 'rb') as f:
+                        backup_data = f.read()
+                    
+                    st.download_button(
+                        label="📥 Descargar Backup",
+                        data=backup_data,
+                        file_name=os.path.basename(backup_path),
+                        mime="application/gzip",
+                        use_container_width=True
+                    )
+                else:
+                    st.error(message)
+    
+    # ===== PESTAÑA 2: RESTAURAR BACKUP =====
+    with tab2:
+        st.markdown("""
+        <div class="card" style="background: #fff3cd;">
+            <h4>⚠️ Importante - Restaurar Backup</h4>
+            <p>Al restaurar un backup:</p>
+            <ul>
+                <li>Se creará automáticamente un backup de seguridad del estado actual</li>
+                <li>Se reemplazará la base de datos actual con la del backup</li>
+                <li>Todos los datos actuales se perderán si no se hace backup</li>
+                <li>La aplicación se recargará automáticamente</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.divider()
+        
+        # Opción 1: Subir archivo
+        st.subheader("📂 Subir archivo de backup")
+        
+        uploaded_file = st.file_uploader(
+            "Selecciona un archivo de backup (.gz)",
+            type=['gz'],
+            help="Archivos de backup generados por el sistema (formato .gz)"
+        )
+        
+        if uploaded_file is not None:
+            # Mostrar información del archivo
+            col1, col2 = st.columns(2)
+            with col1:
+                st.info(f"📄 Archivo: {uploaded_file.name}")
+            with col2:
+                st.info(f"📦 Tamaño: {format_size(uploaded_file.size)}")
+            
+            # Botón de restauración
+            if st.button("🔄 Restaurar este Backup", type="primary", use_container_width=True):
+                with st.spinner("Restaurando backup... Esto puede tomar unos segundos"):
+                    success, message = restore_backup(uploaded_file)
+                
+                if success:
+                    st.success(message)
+                    st.balloons()
+                    st.warning("🔄 La aplicación se recargará en 3 segundos...")
+                    time.sleep(3)
+                    st.rerun()
+                else:
+                    st.error(message)
+        
+        st.divider()
+        
+        # Opción 2: Seleccionar de backups existentes
+        st.subheader("📋 O restaurar desde backups existentes")
+        
+        backups = list_backups()
+        if backups:
+            backup_options = {f"{b['name']} ({b['modified'].strftime('%Y-%m-%d %H:%M:%S')})": b['name'] for b in backups}
+            selected_backup = st.selectbox(
+                "Selecciona un backup existente",
+                options=list(backup_options.keys())
+            )
+            
+            if selected_backup:
+                backup_name = backup_options[selected_backup]
+                backup_info = next((b for b in backups if b['name'] == backup_name), None)
+                
+                if backup_info:
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric("Nombre", result["name"])
+                        st.metric("Tamaño", format_size(backup_info['size']))
                     with col2:
-                        st.metric("Tamaño", result["size"])
+                        st.metric("Fecha", backup_info['modified'].strftime('%Y-%m-%d'))
                     with col3:
-                        st.metric("Fecha", datetime.now().strftime("%H:%M:%S"))
+                        st.metric("Hora", backup_info['modified'].strftime('%H:%M:%S'))
                     
-                    # Botón para descargar
-                    with open(result["path"], "rb") as fp:
-                        st.download_button(
-                            label="📥 Descargar Backup",
-                            data=fp,
-                            file_name=result["name"],
-                            mime="application/zip",
-                            use_container_width=True
-                        )
-                else:
-                    st.error(f"❌ Error creando backup: {result['error']}")
-    
-    # ===== TAB 2: LISTAR BACKUPS =====
-    with tab2:
-        st.markdown("### 📋 Backups disponibles")
-        
-        backups = manager.list_backups()
-        
-        if not backups:
-            st.info("📭 No hay backups disponibles. Crea uno en la pestaña anterior.")
+                    if st.button("🔄 Restaurar este backup", key="restore_existing", use_container_width=True):
+                        # Simular subida del archivo existente
+                        with open(backup_info['path'], 'rb') as f:
+                            file_content = f.read()
+                        
+                        class MockUploadedFile:
+                            def __init__(self, name, content):
+                                self.name = name
+                                self.content = content
+                                self.size = len(content)
+                            
+                            def read(self):
+                                return self.content
+                        
+                        mock_file = MockUploadedFile(backup_info['name'], file_content)
+                        
+                        with st.spinner("Restaurando backup..."):
+                            success, message = restore_backup(mock_file)
+                        
+                        if success:
+                            st.success(message)
+                            st.balloons()
+                            st.warning("🔄 La aplicación se recargará en 3 segundos...")
+                            time.sleep(3)
+                            st.rerun()
+                        else:
+                            st.error(message)
         else:
-            # Estadísticas
-            stats = manager.get_backup_stats()
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Backups", stats["total_backups"])
-            with col2:
-                st.metric("Espacio total", stats["total_size"])
-            with col3:
-                if stats["latest_backup"]:
-                    st.metric("Último backup", stats["latest_backup"]["date"])
+            st.info("📭 No hay backups disponibles para restaurar")
+    
+    # ===== PESTAÑA 3: LISTA DE BACKUPS =====
+    with tab3:
+        st.subheader("📋 Backups disponibles")
+        
+        backups = list_backups()
+        
+        if backups:
+            # Crear DataFrame para mostrar
+            backup_data = []
+            for b in backups:
+                backup_data.append({
+                    "Nombre": b['name'],
+                    "Fecha": b['modified'].strftime("%Y-%m-%d"),
+                    "Hora": b['modified'].strftime("%H:%M:%S"),
+                    "Tamaño": format_size(b['size']),
+                    "Acciones": b['name']
+                })
             
-            st.divider()
-            
-            # Tabla de backups
-            for backup in backups:
+            for backup in backup_data:
                 with st.container():
-                    col1, col2, col3, col4, col5 = st.columns([3, 1, 2, 1, 1])
+                    col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
                     
                     with col1:
-                        st.markdown(f"**{backup['name']}**")
+                        st.markdown(f"**{backup['Nombre']}**")
                     with col2:
-                        st.markdown(f"`{backup['size']}`")
+                        st.write(backup['Fecha'])
                     with col3:
-                        st.markdown(f"📅 {backup['date']}")
+                        st.write(backup['Hora'])
                     with col4:
-                        # Botón de restaurar
-                        if st.button("🔄 Restaurar", key=f"restore_{backup['name']}"):
-                            st.session_state.confirm_restore = backup['name']
-                    
+                        st.write(backup['Tamaño'])
                     with col5:
-                        # Botón de eliminar
-                        if st.button("🗑️ Eliminar", key=f"delete_{backup['name']}"):
-                            st.session_state.confirm_delete = backup['name']
-                    
-                    # Botón de descargar
-                    col1, col2, col3, col4, col5 = st.columns([3, 1, 2, 1, 1])
-                    with col4:
-                        with open(backup['path'], "rb") as fp:
+                        # Botón de descarga
+                        backup_info = next((b for b in backups if b['name'] == backup['Nombre']), None)
+                        if backup_info:
+                            with open(backup_info['path'], 'rb') as f:
+                                backup_data_file = f.read()
+                            
                             st.download_button(
                                 label="📥",
-                                data=fp,
-                                file_name=backup['name'],
-                                mime="application/zip",
-                                key=f"download_{backup['name']}"
+                                data=backup_data_file,
+                                file_name=backup_info['name'],
+                                mime="application/gzip",
+                                key=f"download_{backup['Nombre']}",
+                                help="Descargar backup"
                             )
+                    
+                    # Botón de eliminar en columna aparte
+                    col_del1, col_del2, col_del3 = st.columns([1, 1, 8])
+                    with col_del1:
+                        if st.button("🗑️", key=f"del_{backup['Nombre']}", help="Eliminar backup"):
+                            success, msg = delete_backup(backup['Nombre'])
+                            if success:
+                                st.success(msg)
+                                st.cache_data.clear()
+                                time.sleep(1)
+                                st.rerun()
+                            else:
+                                st.error(msg)
                     
                     st.divider()
             
-            # Confirmación de restauración
-            if 'confirm_restore' in st.session_state:
-                backup_name = st.session_state.confirm_restore
-                st.warning(f"⚠️ ¿Estás seguro de restaurar el backup '{backup_name}'?")
-                st.error("⚠️ Esta acción sobreescribirá TODOS los datos actuales!")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("✅ Sí, restaurar", key="confirm_restore_yes"):
-                        backup_path = manager.backup_dir / backup_name
-                        result = manager.restore_backup(backup_path, "database")
-                        
-                        if result["success"]:
-                            st.success(f"✅ {result['message']}")
-                            if result.get("pre_restore_backup"):
-                                st.info(f"💾 Backup automático creado: {result['pre_restore_backup']}")
-                            del st.session_state.confirm_restore
-                            st.cache_data.clear()
-                            st.rerun()
-                        else:
-                            st.error(f"❌ Error: {result['error']}")
-                
-                with col2:
-                    if st.button("❌ No, cancelar", key="confirm_restore_no"):
-                        del st.session_state.confirm_restore
-                        st.rerun()
-            
-            # Confirmación de eliminación
-            if 'confirm_delete' in st.session_state:
-                backup_name = st.session_state.confirm_delete
-                st.warning(f"⚠️ ¿Estás seguro de eliminar el backup '{backup_name}'?")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("✅ Sí, eliminar", key="confirm_delete_yes"):
-                        if manager.delete_backup(backup_name):
-                            st.success("✅ Backup eliminado!")
-                            del st.session_state.confirm_delete
-                            st.rerun()
-                        else:
-                            st.error("❌ Error al eliminar")
-                
-                with col2:
-                    if st.button("❌ No, cancelar", key="confirm_delete_no"):
-                        del st.session_state.confirm_delete
-                        st.rerun()
-    
-    # ===== TAB 3: CONFIGURACIÓN =====
-    with tab3:
-        st.markdown("### ⚙️ Configuración de Backups")
+            # Estadísticas de backups
+            st.subheader("📊 Estadísticas")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Backups", len(backups))
+            with col2:
+                total_size = sum(b['size'] for b in backups)
+                st.metric("Espacio total", format_size(total_size))
+            with col3:
+                oldest = min(backups, key=lambda x: x['modified'])
+                st.metric("Backup más antiguo", oldest['modified'].strftime('%Y-%m-%d'))
         
-        stats = manager.get_backup_stats()
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### 📁 Directorio de backups")
-            st.code(stats['backup_dir'])
+        else:
+            st.info("📭 No hay backups disponibles. Crea tu primer backup en la pestaña 'Crear Backup'.")
             
-            if st.button("📂 Abrir carpeta de backups"):
-                # Abrir carpeta en el explorador de archivos
-                import subprocess
-                import platform
-                
-                try:
-                    if platform.system() == "Windows":
-                        os.startfile(str(manager.backup_dir))
-                    elif platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", str(manager.backup_dir)])
-                    else:  # Linux
-                        subprocess.run(["xdg-open", str(manager.backup_dir)])
-                except:
-                    st.info("No se puede abrir la carpeta automáticamente")
-        
-        with col2:
-            st.markdown("#### 🔧 Opciones avanzadas")
-            
-            # Backup automático
-            auto_backup = st.checkbox("Activar backups automáticos", value=False,
-                                     help="Crear backups automáticos cada cierto tiempo")
-            
-            if auto_backup:
-                frecuencia = st.selectbox("Frecuencia", ["Diario", "Semanal", "Mensual"])
-                mantener = st.number_input("Mantener últimos N backups", min_value=1, value=10)
-                
-                if st.button("💾 Guardar configuración"):
-                    st.success("✅ Configuración guardada!")
-            
-            # Limpiar backups antiguos
-            st.divider()
-            st.markdown("#### 🧹 Limpiar backups antiguos")
-            
-            dias = st.number_input("Eliminar backups más antiguos de (días)", min_value=1, value=30)
-            
-            if st.button("🗑️ Limpiar backups antiguos", type="secondary"):
-                st.warning(f"¿Eliminar backups anteriores a {dias} días?")
+            # Botón rápido para crear backup
+            if st.button("🔄 Crear primer backup ahora", type="primary"):
+                with st.spinner("Creando backup..."):
+                    success, backup_path, message = create_backup()
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.error(message)
