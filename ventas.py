@@ -140,7 +140,7 @@ def get_employee_info(user_id):
         conn = get_connection()
         cur = conn.cursor()
         cur.execute("""
-            SELECT id, name, position, department, goal 
+            SELECT id, name, position, department, goal, meta_afiliaciones 
             FROM employees 
             WHERE user_id = ?
         """, (user_id,))
@@ -162,6 +162,400 @@ def get_badge_class(position):
         return "badge-cargo-cajas"
     else:
         return "badge-cargo-drogueria"
+
+# ============= FUNCIONES DE AFILIACIONES =============
+# Copia y pega todo esto después de las funciones existentes
+
+def get_afiliaciones_info(employee_id, fecha=None):
+    """Obtener información de afiliaciones para un empleado"""
+    if fecha is None:
+        fecha = date.today()
+    
+    # Obtener afiliaciones del día
+    result = execute_query(
+        "SELECT cantidad FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
+        (employee_id, str(fecha))
+    )
+    afiliaciones_hoy = result[0][0] if result else 0
+    
+    # Obtener afiliaciones del mes
+    mes_actual = fecha.strftime("%Y-%m")
+    result_mes = execute_query(
+        "SELECT SUM(cantidad) FROM afiliaciones WHERE employee_id = ? AND fecha LIKE ?",
+        (employee_id, f"{mes_actual}%")
+    )
+    afiliaciones_mes = result_mes[0][0] or 0 if result_mes else 0
+    
+    return afiliaciones_hoy, afiliaciones_mes
+
+def registrar_afiliacion(employee_id, cantidad, fecha=None):
+    """Registrar una afiliación para un empleado"""
+    if fecha is None:
+        fecha = date.today()
+    
+    # Verificar si ya existe registro para hoy
+    existe = execute_query(
+        "SELECT id, cantidad FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
+        (employee_id, str(fecha))
+    )
+    
+    if existe:
+        # Actualizar registro existente
+        nueva_cantidad = existe[0][1] + cantidad
+        success = execute_insert(
+            "UPDATE afiliaciones SET cantidad = ? WHERE employee_id = ? AND fecha = ?",
+            (nueva_cantidad, employee_id, str(fecha))
+        )
+    else:
+        # Crear nuevo registro
+        success = execute_insert(
+            "INSERT INTO afiliaciones (employee_id, fecha, cantidad) VALUES (?, ?, ?)",
+            (employee_id, str(fecha), cantidad)
+        )
+    
+    return success
+
+# ============= NUEVAS PÁGINAS DE AFILIACIONES =============
+
+def page_registrar_afiliaciones():
+    """Página para que los empleados registren sus afiliaciones"""
+    st.title("📱 Registro de Afiliaciones - AIS")
+    
+    emp_info = get_employee_info(st.session_state.user["id"])
+    
+    if not emp_info:
+        st.error("❌ No tienes un empleado asociado. Contacta al administrador.")
+        return
+    
+    badge_class = get_badge_class(emp_info[2])
+    
+    # Obtener meta de afiliaciones (por defecto 50 si no existe)
+    meta_afiliaciones = emp_info[5] if len(emp_info) > 5 else 50
+    
+    # Obtener afiliaciones actuales
+    afiliaciones_hoy, afiliaciones_mes = get_afiliaciones_info(emp_info[0])
+    
+    st.markdown(f"""
+    <div class="card">
+        <h4>Registrando para: {emp_info[1]}</h4>
+        <p>
+            <span class="badge {badge_class}">{emp_info[2]}</span>
+            <span class="badge badge-depto">{emp_info[3]}</span>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Mostrar progreso actual
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Afiliaciones hoy", afiliaciones_hoy)
+    with col2:
+        progreso_mes = (afiliaciones_mes / meta_afiliaciones * 100) if meta_afiliaciones > 0 else 0
+        st.metric("Progreso mensual", f"{afiliaciones_mes}/{meta_afiliaciones} ({progreso_mes:.1f}%)")
+    
+    # Barra de progreso
+    st.progress(min(progreso_mes / 100, 1.0))
+    
+    st.divider()
+    
+    # Formulario de registro
+    with st.form("afiliaciones_form"):
+        st.subheader("📝 Registrar nuevas afiliaciones")
+        
+        cantidad = st.number_input(
+            "Cantidad de afiliaciones realizadas",
+            min_value=1,
+            step=1,
+            value=1,
+            help="Ingresa el número de afiliaciones que realizaste"
+        )
+        
+        fecha_registro = st.date_input(
+            "Fecha del registro",
+            value=date.today(),
+            max_value=date.today()
+        )
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            submitted = st.form_submit_button("💾 Registrar afiliaciones", use_container_width=True, type="primary")
+        
+        if submitted:
+            if cantidad > 0:
+                success = registrar_afiliacion(emp_info[0], cantidad, fecha_registro)
+                
+                if success:
+                    st.success(f"✅ {cantidad} afiliación(es) registrada(s) exitosamente!")
+                    st.balloons()
+                    st.cache_data.clear()
+                    time.sleep(1)
+                    st.rerun()
+            else:
+                st.warning("⚠️ Debes ingresar al menos una afiliación")
+
+def page_mis_afiliaciones():
+    """Página para que los empleados vean su historial de afiliaciones"""
+    st.title("📊 Mis Afiliaciones - AIS")
+    
+    emp_info = get_employee_info(st.session_state.user["id"])
+    
+    if not emp_info:
+        st.error("❌ No tienes un empleado asociado")
+        return
+    
+    meta_afiliaciones = emp_info[5] if len(emp_info) > 5 else 50
+    
+    # Selector de período
+    periodo = st.selectbox(
+        "Período",
+        ["Esta semana", "Este mes", "Este trimestre", "Este año", "Todo"],
+        key="afiliaciones_periodo"
+    )
+    
+    if st.button("🔄 Actualizar", key="actualizar_afiliaciones"):
+        st.cache_data.clear()
+        st.rerun()
+    
+    # Calcular fechas según período
+    hoy = date.today()
+    if periodo == "Esta semana":
+        fecha_inicio = hoy - pd.Timedelta(days=hoy.weekday())
+    elif periodo == "Este mes":
+        fecha_inicio = hoy.replace(day=1)
+    elif periodo == "Este trimestre":
+        mes_actual = hoy.month
+        trimestre_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
+        fecha_inicio = trimestre_inicio
+    elif periodo == "Este año":
+        fecha_inicio = hoy.replace(month=1, day=1)
+    else:
+        fecha_inicio = date(2000, 1, 1)
+    
+    # Obtener datos
+    df = safe_dataframe("""
+        SELECT fecha, cantidad
+        FROM afiliaciones 
+        WHERE employee_id = ? AND fecha >= ?
+        ORDER BY fecha DESC
+    """, (emp_info[0], fecha_inicio))
+    
+    if df.empty:
+        st.info(f"ℹ️ No hay registros de afiliaciones en {periodo.lower()}")
+        return
+    
+    df["fecha"] = pd.to_datetime(df["fecha"])
+    
+    # Métricas
+    total_periodo = int(df["cantidad"].sum())
+    promedio = int(df["cantidad"].mean())
+    mejor_dia = int(df["cantidad"].max())
+    progreso_meta = (total_periodo / meta_afiliaciones * 100) if meta_afiliaciones > 0 else 0
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total período", f"{total_periodo:,}")
+    with col2:
+        st.metric("Promedio diario", f"{promedio:,}")
+    with col3:
+        st.metric("Mejor día", f"{mejor_dia:,}")
+    with col4:
+        st.metric("Progreso meta", f"{progreso_meta:.1f}%")
+    
+    # Gráfico de evolución
+    fig = px.line(df, x="fecha", y="cantidad", 
+                 title=f"📈 Evolución de afiliaciones - {periodo}",
+                 markers=True)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Tabla de registros
+    st.subheader("📋 Historial de registros")
+    df_display = df.copy()
+    df_display["fecha"] = df_display["fecha"].dt.strftime("%d/%m/%Y")
+    df_display.columns = ["Fecha", "Cantidad"]
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
+
+def page_admin_afiliaciones():
+    """Página para que el admin gestione las metas de afiliaciones"""
+    st.title("⚙️ Configuración de Afiliaciones")
+    
+    tab1, tab2, tab3 = st.tabs([
+        "🎯 Metas por empleado",
+        "📊 Ranking de afiliaciones",
+        "📈 Reporte general"
+    ])
+    
+    with tab1:
+        st.subheader("Configurar metas mensuales de afiliaciones")
+        
+        # Obtener todos los empleados
+        empleados = execute_query("""
+            SELECT id, name, department, position, meta_afiliaciones
+            FROM employees
+            ORDER BY department, name
+        """)
+        
+        if not empleados:
+            st.info("No hay empleados registrados")
+        else:
+            # Mostrar en tabla editable
+            st.markdown("""
+            <div class="card">
+                <p>💡 Puedes ajustar la meta mensual de afiliaciones para cada empleado.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            for emp in empleados:
+                with st.expander(f"{emp[1]} - {emp[2]} ({emp[3]})"):
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        nueva_meta = st.number_input(
+                            "Meta mensual de afiliaciones",
+                            min_value=1,
+                            value=emp[4] or 50,
+                            step=10,
+                            key=f"meta_{emp[0]}"
+                        )
+                    with col2:
+                        if st.button("💾 Guardar", key=f"guardar_{emp[0]}"):
+                            success = execute_insert(
+                                "UPDATE employees SET meta_afiliaciones = ? WHERE id = ?",
+                                (nueva_meta, emp[0])
+                            )
+                            if success:
+                                st.success("✅ Meta actualizada!")
+                                st.cache_data.clear()
+                                time.sleep(1)
+                                st.rerun()
+    
+    with tab2:
+        st.subheader("🏆 Ranking de Afiliaciones")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            periodo = st.selectbox(
+                "Período",
+                ["Este mes", "Este trimestre", "Este año", "Todo"],
+                key="ranking_periodo"
+            )
+        with col2:
+            depto_filtro = st.selectbox(
+                "Departamento",
+                ["Todos"] + DEPARTAMENTOS,
+                key="depto_filtro"
+            )
+        
+        # Calcular fecha inicio según período
+        hoy = date.today()
+        if periodo == "Este mes":
+            fecha_inicio = hoy.replace(day=1)
+        elif periodo == "Este trimestre":
+            mes_actual = hoy.month
+            trimestre_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
+            fecha_inicio = trimestre_inicio
+        elif periodo == "Este año":
+            fecha_inicio = hoy.replace(month=1, day=1)
+        else:
+            fecha_inicio = date(2000, 1, 1)
+        
+        # Query para ranking
+        query = """
+            SELECT 
+                e.name as Empleado,
+                e.department as Departamento,
+                e.position as Cargo,
+                COALESCE(SUM(a.cantidad), 0) as Total,
+                COUNT(DISTINCT a.fecha) as Dias_con_afiliaciones,
+                e.meta_afiliaciones as Meta
+            FROM employees e
+            LEFT JOIN afiliaciones a ON e.id = a.employee_id AND a.fecha >= ?
+            WHERE 1=1
+        """
+        params = [fecha_inicio]
+        
+        if depto_filtro != "Todos":
+            query += " AND e.department = ?"
+            params.append(depto_filtro)
+        
+        query += " GROUP BY e.id ORDER BY Total DESC"
+        
+        df = safe_dataframe(query, params)
+        
+        if df.empty:
+            st.info("No hay datos de afiliaciones para mostrar")
+        else:
+            df['Cumplimiento'] = (df['Total'] / df['Meta'] * 100).round(1)
+            
+            df_display = df.copy()
+            df_display["Posición"] = range(1, len(df) + 1)
+            df_display["Total"] = df_display["Total"].apply(lambda x: f"{int(x):,}")
+            df_display["Cumplimiento"] = df_display["Cumplimiento"].apply(lambda x: f"{x}%")
+            
+            st.dataframe(
+                df_display[["Posición", "Empleado", "Departamento", "Cargo", "Total", "Dias_con_afiliaciones", "Cumplimiento"]],
+                use_container_width=True,
+                hide_index=True
+            )
+            
+            # Gráfico de barras
+            fig = px.bar(df, x="Empleado", y="Total", color="Departamento",
+                        title="Afiliaciones por empleado",
+                        labels={"Total": "Total de afiliaciones"})
+            st.plotly_chart(fig, use_container_width=True)
+    
+    with tab3:
+        st.subheader("📈 Reporte general de afiliaciones")
+        
+        # Selector de fechas
+        col1, col2 = st.columns(2)
+        with col1:
+            fecha_inicio = st.date_input("Fecha inicio", value=date.today().replace(day=1))
+        with col2:
+            fecha_fin = st.date_input("Fecha fin", value=date.today())
+        
+        # Datos generales
+        df_general = safe_dataframe("""
+            SELECT 
+                a.fecha,
+                e.department,
+                e.name as empleado,
+                a.cantidad
+            FROM afiliaciones a
+            JOIN employees e ON a.employee_id = e.id
+            WHERE a.fecha BETWEEN ? AND ?
+            ORDER BY a.fecha DESC
+        """, (fecha_inicio, fecha_fin))
+        
+        if df_general.empty:
+            st.info("No hay registros en el período seleccionado")
+        else:
+            # Métricas generales
+            total_afiliaciones = df_general["cantidad"].sum()
+            promedio_diario = df_general.groupby("fecha")["cantidad"].sum().mean()
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total afiliaciones", f"{int(total_afiliaciones):,}")
+            with col2:
+                st.metric("Promedio diario", f"{int(promedio_diario):,}")
+            with col3:
+                st.metric("Días con registros", len(df_general["fecha"].unique()))
+            
+            # Gráfico por departamento
+            depto_df = df_general.groupby("department")["cantidad"].sum().reset_index()
+            fig_depto = px.pie(depto_df, values="cantidad", names="department",
+                              title="Distribución por departamento")
+            st.plotly_chart(fig_depto, use_container_width=True)
+            
+            # Evolución diaria
+            diario_df = df_general.groupby("fecha")["cantidad"].sum().reset_index()
+            fig_evol = px.line(diario_df, x="fecha", y="cantidad",
+                              title="Evolución diaria de afiliaciones",
+                              markers=True)
+            st.plotly_chart(fig_evol, use_container_width=True)
+            
+            # Tabla detallada
+            st.subheader("📋 Detalle de registros")
+            st.dataframe(df_general, use_container_width=True, hide_index=True)
 
 # ---------------- LOGIN ---------------- #
 def show_login():
@@ -472,6 +866,8 @@ def show_menu():
             # ===== MENÚ DE NAVEGACIÓN =====
             st.markdown("### 📍 Navegación")
             
+            # En la función show_menu(), reemplaza la sección de menú:
+
             if st.session_state.user["role"] == "admin":
                 menu_items = [
                     ("📊 Dashboard", "Dashboard"),
@@ -479,11 +875,14 @@ def show_menu():
                     ("🧑‍ Empleados", "Empleados"),
                     ("👥 Usuarios", "Usuarios"),
                     ("📊 Reportes", "Reportes"),
+                    ("📱 Afiliaciones", "Admin Afiliaciones"),  # Nueva opción
                     ("💾 Backups", "Backups")
                 ]
             else:
                 menu_items = [
                     ("📝 Registrar ventas", "Registrar ventas"),
+                    ("📱 Registrar afiliaciones", "Registrar afiliaciones"),  # Nueva opción
+                    ("📊 Mis afiliaciones", "Mis afiliaciones"),  # Nueva opción
                     ("📈 Mi Desempeño", "Mi desempeño"),
                     ("👤 Mi perfil", "Mi perfil"),
                     ("🏆 Ranking", "Ranking")
@@ -1578,6 +1977,8 @@ def main():
         # Contenido principal
         st.markdown('<div style="padding: 20px;">', unsafe_allow_html=True)
         
+        # En la función main(), actualiza el diccionario pages:
+
         pages = {
             "Dashboard": page_dashboard,
             "Ranking": page_ranking,
@@ -1585,10 +1986,13 @@ def main():
             "Usuarios": page_usuarios,
             "Reportes": page_reportes,
             "Backups": render_backup_page,
+            "Admin Afiliaciones": page_admin_afiliaciones,  # Nueva página admin
             "Registrar ventas": page_registrar_ventas,
+            "Registrar afiliaciones": page_registrar_afiliaciones,  # Nueva página empleado
+            "Mis afiliaciones": page_mis_afiliaciones,  # Nueva página empleado
             "Mi desempeño": page_mi_desempeno,
             "Mi perfil": page_mi_perfil
-         }
+        }
         
         if st.session_state.page in pages:
             pages[st.session_state.page]()
