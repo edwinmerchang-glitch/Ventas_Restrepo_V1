@@ -2174,9 +2174,10 @@ def show_footer_simple():
     """, unsafe_allow_html=True)
 
 def show_footer_advanced():
-    """Versión avanzada del footer con estadísticas y HORA REAL DEL PC usando JavaScript"""
+    """Versión avanzada del footer con estadísticas y HORA REAL DEL PC"""
     
     from datetime import date
+    import streamlit as st
     
     if not st.session_state.user:
         return show_footer_simple()
@@ -2207,10 +2208,10 @@ def show_footer_advanced():
     except:
         stats = "📊 Cargando..."
     
-    # IMPORTANTE: Todo el HTML y JavaScript debe estar DENTRO del st.markdown
-    st.markdown("""
+    # HTML con JavaScript mejorado
+    footer_html = f"""
     <style>
-    .footer-advanced {
+    .footer-advanced {{
         position: fixed;
         bottom: 0;
         left: 0;
@@ -2226,97 +2227,120 @@ def show_footer_advanced():
         box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
         backdrop-filter: blur(10px);
         border-top: 1px solid rgba(255,255,255,0.2);
-    }
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }}
     
-    .footer-section {
+    .footer-section {{
         display: flex;
         align-items: center;
         gap: 15px;
-    }
+    }}
     
-    .footer-logo {
+    .footer-logo {{
         font-weight: bold;
         font-size: 14px;
         background: rgba(255,255,255,0.2);
         padding: 3px 12px;
         border-radius: 20px;
         letter-spacing: 0.5px;
-    }
+    }}
     
-    .footer-stats {
+    .footer-stats {{
         background: rgba(0,0,0,0.2);
         padding: 3px 12px;
         border-radius: 20px;
         font-size: 12px;
-    }
+    }}
     
-    .footer-link {
+    .footer-link {{
         color: white;
         text-decoration: none;
         margin: 0 5px;
         opacity: 0.8;
         transition: opacity 0.3s;
-    }
+        cursor: pointer;
+    }}
     
-    .footer-link:hover {
+    .footer-link:hover {{
         opacity: 1;
         text-decoration: underline;
-    }
+    }}
     
-    .footer-version {
+    .footer-version {{
         font-size: 11px;
         opacity: 0.7;
         background: rgba(255,255,255,0.1);
         padding: 2px 8px;
         border-radius: 12px;
-    }
+    }}
     
-    #hora-pc {
+    #hora-pc {{
         font-weight: normal;
-    }
+        display: inline-block;
+    }}
     </style>
     
     <div class="footer-advanced">
         <div class="footer-section">
             <span class="footer-logo">🏥 LOCATEL RESTREPO</span>
-            <span class="footer-stats">""" + stats + """</span>
+            <span class="footer-stats">{stats}</span>
         </div>
         <div class="footer-section">
             <span>Creado por Edwin Merchan</span>
             <span class="footer-version">v2.0.0</span>
         </div>
         <div class="footer-section">
-            <a href="#" class="footer-link" onclick="alert('Ayuda disponible\\nContacta a soporte@locatel.co')">Ayuda</a>
+            <a href="#" class="footer-link" onclick="alert('Ayuda disponible\\nEmail: soporte@locatel.co\\nTel: (601) 123-4567'); return false;">Ayuda</a>
             <span>|</span>
-            <a href="#" class="footer-link" onclick="alert('Soporte técnico\\nWhatsApp: +57 300 123 4567')">Soporte</a>
+            <a href="#" class="footer-link" onclick="alert('Soporte técnico\\nWhatsApp: +57 300 123 4567\\nHorario: 24/7'); return false;">Soporte</a>
             <span>|</span>
-            <span id="hora-pc">📅 Cargando...</span>
+            <span id="hora-pc">⏱️ 22/02/2026 22:13</span>
         </div>
     </div>
     
     <script>
-    function actualizarHoraPC() {
-        // Obtener la fecha y hora del PC del usuario
-        const ahora = new Date();
-        
-        // Formatear: día/mes/año hora:minuto
-        const dia = String(ahora.getDate()).padStart(2, '0');
-        const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-        const año = ahora.getFullYear();
-        const horas = String(ahora.getHours()).padStart(2, '0');
-        const minutos = String(ahora.getMinutes()).padStart(2, '0');
-        
-        const fechaFormateada = dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
-        
-        // Actualizar el elemento
-        document.getElementById('hora-pc').innerHTML = '📅 ' + fechaFormateada;
-    }
+    // Función para actualizar la hora
+    function actualizarHoraPC() {{
+        try {{
+            // Obtener la fecha y hora del PC
+            const ahora = new Date();
+            
+            // Formatear: día/mes/año hora:minuto
+            const dia = ahora.getDate().toString().padStart(2, '0');
+            const mes = (ahora.getMonth() + 1).toString().padStart(2, '0');
+            const año = ahora.getFullYear();
+            const horas = ahora.getHours().toString().padStart(2, '0');
+            const minutos = ahora.getMinutes().toString().padStart(2, '0');
+            
+            // Formato 24h: 22/02/2026 22:13
+            const fechaFormateada = dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
+            
+            // Actualizar el elemento
+            const elemento = document.getElementById('hora-pc');
+            if (elemento) {{
+                elemento.innerHTML = '⏱️ ' + fechaFormateada;
+            }}
+        }} catch (e) {{
+            console.log('Error actualizando hora:', e);
+        }}
+    }}
+    
+    // Ejecutar inmediatamente
+    if (document.readyState === 'loading') {{
+        document.addEventListener('DOMContentLoaded', actualizarHoraPC);
+    }} else {{
+        actualizarHoraPC();
+    }}
     
     // Actualizar cada segundo
-    actualizarHoraPC();
     setInterval(actualizarHoraPC, 1000);
     </script>
-    """, unsafe_allow_html=True)
+    """
+    
+    st.markdown(footer_html, unsafe_allow_html=True)
+    
+    # Forzar una actualización del componente (opcional)
+    st.markdown("""<script>if(window.actualizarHoraPC) actualizarHoraPC();</script>""", unsafe_allow_html=True)
 
 def show_footer_selector(version="advanced"):
     """
