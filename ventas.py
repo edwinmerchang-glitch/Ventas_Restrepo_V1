@@ -2174,16 +2174,12 @@ def show_footer_simple():
     """, unsafe_allow_html=True)
 
 def show_footer_advanced():
-    """Versión avanzada del footer con estadísticas y fecha/hora del PC"""
+    """Versión avanzada del footer con estadísticas y HORA REAL DEL PC usando JavaScript"""
     
     from datetime import datetime
     
     if not st.session_state.user:
         return show_footer_simple()
-    
-    # Obtener fecha y hora actual del PC
-    ahora = datetime.now()
-    fecha_hora_actual = ahora.strftime('%d/%m/%Y %H:%M')
     
     try:
         if st.session_state.user["role"] == "admin":
@@ -2211,6 +2207,7 @@ def show_footer_advanced():
     except:
         stats = "📊 Cargando..."
     
+    # ===== IMPORTANTE: JavaScript para obtener la hora REAL del PC =====
     st.markdown(f"""
     <style>
     .footer-advanced {{
@@ -2273,6 +2270,10 @@ def show_footer_advanced():
         padding: 2px 8px;
         border-radius: 12px;
     }}
+    
+    #hora-pc {{
+        font-weight: normal;
+    }}
     </style>
     
     <div class="footer-advanced">
@@ -2285,13 +2286,36 @@ def show_footer_advanced():
             <span class="footer-version">v2.0.0</span>
         </div>
         <div class="footer-section">
-            <a href="#" class="footer-link">Ayuda</a>
+            <a href="#" class="footer-link" onclick="alert('Ayuda disponible\nContacta a soporte@locatel.co')">Ayuda</a>
             <span>|</span>
-            <a href="#" class="footer-link">Soporte</a>
+            <a href="#" class="footer-link" onclick="alert('Soporte técnico\nWhatsApp: +57 300 123 4567')">Soporte</a>
             <span>|</span>
-            <span>📅 {fecha_hora_actual}</span>
+            <span id="hora-pc">📅 Cargando hora...</span>
         </div>
     </div>
+    
+    <script>
+    function actualizarHoraPC() {{
+        // Obtener la fecha y hora del PC del usuario
+        const ahora = new Date();
+        
+        // Formatear: día/mes/año hora:minuto
+        const dia = String(ahora.getDate()).padStart(2, '0');
+        const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+        const año = ahora.getFullYear();
+        const horas = String(ahora.getHours()).padStart(2, '0');
+        const minutos = String(ahora.getMinutes()).padStart(2, '0');
+        
+        const fechaFormateada = `${{dia}}/${{mes}}/${{año}} ${{horas}}:${{minutos}}`;
+        
+        // Actualizar el elemento
+        document.getElementById('hora-pc').innerHTML = `📅 ${{fechaFormateada}}`;
+    }}
+    
+    // Actualizar cada segundo para que sea exacto
+    actualizarHoraPC();
+    setInterval(actualizarHoraPC, 1000);
+    </script>
     """, unsafe_allow_html=True)
 
 def show_footer_selector(version="advanced"):
