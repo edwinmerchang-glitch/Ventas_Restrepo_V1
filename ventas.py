@@ -2174,10 +2174,9 @@ def show_footer_simple():
     """, unsafe_allow_html=True)
 
 def show_footer_advanced():
-    """Versión avanzada del footer con estadísticas y HORA REAL DEL PC"""
+    """Versión avanzada del footer con HORA DE COLOMBIA FORZADA"""
     
     from datetime import date
-    import streamlit as st
     
     if not st.session_state.user:
         return show_footer_simple()
@@ -2208,15 +2207,14 @@ def show_footer_advanced():
     except:
         stats = "📊 Cargando..."
     
-    # HTML con JavaScript mejorado
-    footer_html = f"""
+    st.markdown(f"""
     <style>
     .footer-advanced {{
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #0047AB 0%, #FCD116 50%, #CE1126 100%);
         color: white;
         padding: 8px 20px;
         font-size: 13px;
@@ -2225,8 +2223,7 @@ def show_footer_advanced():
         justify-content: space-between;
         align-items: center;
         box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
-        backdrop-filter: blur(10px);
-        border-top: 1px solid rgba(255,255,255,0.2);
+        border-top: 3px solid #CE1126;
         font-family: 'Segoe UI', Arial, sans-serif;
     }}
     
@@ -2239,17 +2236,18 @@ def show_footer_advanced():
     .footer-logo {{
         font-weight: bold;
         font-size: 14px;
-        background: rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.25);
         padding: 3px 12px;
         border-radius: 20px;
-        letter-spacing: 0.5px;
+        border: 1px solid #FCD116;
     }}
     
     .footer-stats {{
-        background: rgba(0,0,0,0.2);
+        background: rgba(0,0,0,0.3);
         padding: 3px 12px;
         border-radius: 20px;
         font-size: 12px;
+        border: 1px solid #FCD116;
     }}
     
     .footer-link {{
@@ -2264,25 +2262,31 @@ def show_footer_advanced():
     .footer-link:hover {{
         opacity: 1;
         text-decoration: underline;
+        color: #FCD116;
     }}
     
     .footer-version {{
         font-size: 11px;
         opacity: 0.7;
-        background: rgba(255,255,255,0.1);
+        background: rgba(255,215,0,0.2);
         padding: 2px 8px;
         border-radius: 12px;
+        border: 1px solid #FCD116;
     }}
     
-    #hora-pc {{
-        font-weight: normal;
-        display: inline-block;
+    #hora-colombia {{
+        font-weight: bold;
+        background: rgba(255,255,255,0.15);
+        padding: 3px 10px;
+        border-radius: 15px;
+        font-family: monospace;
+        font-size: 12px;
     }}
     </style>
     
     <div class="footer-advanced">
         <div class="footer-section">
-            <span class="footer-logo">🏥 LOCATEL RESTREPO</span>
+            <span class="footer-logo">🇨🇴 LOCATEL RESTREPO - COLOMBIA</span>
             <span class="footer-stats">{stats}</span>
         </div>
         <div class="footer-section">
@@ -2290,57 +2294,89 @@ def show_footer_advanced():
             <span class="footer-version">v2.0.0</span>
         </div>
         <div class="footer-section">
-            <a href="#" class="footer-link" onclick="alert('Ayuda disponible\\nEmail: soporte@locatel.co\\nTel: (601) 123-4567'); return false;">Ayuda</a>
+            <a href="#" class="footer-link" onclick="alert('🇨🇴 Colombia\\n📞 Teléfono: (601) 123-4567\\n📧 Email: soporte@locatel.co\\n📍 Bogotá, Colombia')">Ayuda</a>
             <span>|</span>
-            <a href="#" class="footer-link" onclick="alert('Soporte técnico\\nWhatsApp: +57 300 123 4567\\nHorario: 24/7'); return false;">Soporte</a>
+            <a href="#" class="footer-link" onclick="alert('Soporte Colombia\\n📱 WhatsApp: +57 300 123 4567\\n⏰ Horario: 24/7')">Soporte</a>
             <span>|</span>
-            <span id="hora-pc">⏱️ 22/02/2026 22:13</span>
+            <span id="hora-colombia">⏱️ Cargando hora Colombia...</span>
         </div>
     </div>
     
     <script>
-    // Función para actualizar la hora
-    function actualizarHoraPC() {{
+    function actualizarHoraColombia() {{
         try {{
-            // Obtener la fecha y hora del PC
-            const ahora = new Date();
+            // Crear fecha con la zona horaria de Colombia explícitamente
+            const opciones = {{
+                timeZone: 'America/Bogota',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true,
+                hourCycle: 'h12'
+            }};
             
-            // Formatear: día/mes/año hora:minuto
-            const dia = ahora.getDate().toString().padStart(2, '0');
-            const mes = (ahora.getMonth() + 1).toString().padStart(2, '0');
-            const año = ahora.getFullYear();
-            const horas = ahora.getHours().toString().padStart(2, '0');
-            const minutos = ahora.getMinutes().toString().padStart(2, '0');
+            // Formateador para Colombia
+            const formatter = new Intl.DateTimeFormat('es-CO', opciones);
+            const fechaCompleta = formatter.format(new Date());
             
-            // Formato 24h: 22/02/2026 22:13
-            const fechaFormateada = dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
+            // Extraer partes para tener control del formato
+            const partes = formatter.formatToParts(new Date());
+            
+            let dia = '', mes = '', año = '', hora = '', minuto = '', segundo = '', ampm = '';
+            
+            partes.forEach(part => {{
+                if (part.type === 'day') dia = part.value;
+                if (part.type === 'month') mes = part.value;
+                if (part.type === 'year') año = part.value;
+                if (part.type === 'hour') hora = part.value;
+                if (part.type === 'minute') minuto = part.value;
+                if (part.type === 'second') segundo = part.value;
+                if (part.type === 'dayPeriod') ampm = part.value === 'a.m.' ? 'a.m.' : 'p.m.';
+            }});
+            
+            // Formato: 22/02/2026 5:20:13 p.m.
+            const fechaFormateada = dia + '/' + mes + '/' + año + ' ' + hora + ':' + minuto + ':' + segundo + ' ' + ampm;
             
             // Actualizar el elemento
-            const elemento = document.getElementById('hora-pc');
-            if (elemento) {{
-                elemento.innerHTML = '⏱️ ' + fechaFormateada;
-            }}
-        }} catch (e) {{
-            console.log('Error actualizando hora:', e);
+            document.getElementById('hora-colombia').innerHTML = '⏱️ ' + fechaFormateada;
+            
+        }} catch (error) {{
+            console.log('Error con formato, usando método manual:', error);
+            
+            // Método manual por si falla el formateador
+            const ahora = new Date();
+            
+            // Ajuste manual a UTC-5 (Colombia)
+            const utc = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
+            const colombiaTime = new Date(utc - (5 * 3600000));
+            
+            const dia = String(colombiaTime.getDate()).padStart(2, '0');
+            const mes = String(colombiaTime.getMonth() + 1).padStart(2, '0');
+            const año = colombiaTime.getFullYear();
+            
+            let horas = colombiaTime.getHours();
+            const minutos = String(colombiaTime.getMinutes()).padStart(2, '0');
+            const segundos = String(colombiaTime.getSeconds()).padStart(2, '0');
+            const ampm = horas >= 12 ? 'p.m.' : 'a.m.';
+            
+            horas = horas % 12;
+            horas = horas ? horas : 12;
+            const horasStr = String(horas).padStart(2, '0');
+            
+            const fechaManual = dia + '/' + mes + '/' + año + ' ' + horasStr + ':' + minutos + ':' + segundos + ' ' + ampm;
+            
+            document.getElementById('hora-colombia').innerHTML = '⏱️ ' + fechaManual;
         }}
     }}
     
-    // Ejecutar inmediatamente
-    if (document.readyState === 'loading') {{
-        document.addEventListener('DOMContentLoaded', actualizarHoraPC);
-    }} else {{
-        actualizarHoraPC();
-    }}
-    
     // Actualizar cada segundo
-    setInterval(actualizarHoraPC, 1000);
+    actualizarHoraColombia();
+    setInterval(actualizarHoraColombia, 1000);
     </script>
-    """
-    
-    st.markdown(footer_html, unsafe_allow_html=True)
-    
-    # Forzar una actualización del componente (opcional)
-    st.markdown("""<script>if(window.actualizarHoraPC) actualizarHoraPC();</script>""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 def show_footer_selector(version="advanced"):
     """
