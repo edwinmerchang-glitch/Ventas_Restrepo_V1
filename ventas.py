@@ -2302,7 +2302,7 @@ def show_footer_advanced():
     
     <div class="footer-advanced">
         <div class="footer-section">
-            <span class="footer-logo">🇨🇴 LOCATEL RESTREPO - COLOMBIA</span>
+            <span class="footer-logo">LOCATEL RESTREPO</span>
             <span class="footer-stats">{stats}</span>
         </div>
         <div class="footer-section">
