@@ -1574,10 +1574,53 @@ def page_dashboard():
     
     tab1, tab2, tab3 = st.tabs(["📈 Evolución", "📊 Distribución", "👥 Por empleado"])
     
-    with tab1:
-        fig = px.line(df, x="date", y="total", color="department",
-                     title="📈 Evolución diaria de ventas por departamento")
-        st.plotly_chart(fig, use_container_width=True)
+with tab1:
+    st.subheader("📈 Evolución diaria de ventas")
+    
+    # Preparar datos para áreas apiladas
+    df_pivot = df.pivot_table(
+        index='date', 
+        columns='department', 
+        values='total', 
+        aggfunc='sum',
+        fill_value=0
+    ).reset_index()
+    
+    # Crear gráfico de áreas apiladas
+    fig = px.area(
+        df_pivot,
+        x='date',
+        y=df_pivot.columns[1:],  # Todos los departamentos
+        title='Evolución de ventas por departamento (áreas apiladas)',
+        labels={'value': 'Unidades vendidas', 'date': 'Fecha', 'variable': 'Departamento'},
+        color_discrete_map={
+            'Droguería': '#FF6B6B',
+            'Equipos Médicos': '#4ECDC4',
+            'Pasillos': '#45B7D1',
+            'Cajas': '#96CEB4'
+        }
+    )
+    
+    fig.update_layout(
+        hovermode='x unified',
+        legend_title_text='Departamento',
+        xaxis_title='Fecha',
+        yaxis_title='Unidades vendidas'
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Mostrar total por día
+    df_daily = df.groupby('date')['total'].sum().reset_index()
+    df_daily['date'] = pd.to_datetime(df_daily['date']).dt.strftime('%d/%m')
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Promedio diario", f"{int(df_daily['total'].mean()):,}")
+    with col2:
+        st.metric("Mejor día", f"{int(df_daily['total'].max()):,}")
+    with col3:
+        st.metric("Total período", f"{int(df_daily['total'].sum()):,}")
     
     with tab2:
         dist_df = df.groupby('department')[['autoliquidable','oferta','marca','adicional']].sum().reset_index()
