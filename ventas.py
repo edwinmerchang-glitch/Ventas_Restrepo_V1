@@ -1572,14 +1572,13 @@ def page_dashboard():
     with col4:
         st.metric("Marca Propia", f"{int(df['marca'].sum()):,}")
     
-    # Crear las pestañas AQUÍ
+    # Crear las pestañas
     tab1, tab2, tab3 = st.tabs(["📈 Evolución", "📊 Distribución", "👥 Por empleado"])
     
-    # ===== PESTAÑA 1: EVOLUCIÓN (MEJORADA) =====
+    # ===== PESTAÑA 1: EVOLUCIÓN =====
     with tab1:
         st.subheader("📈 Evolución diaria de ventas")
         
-        # Opciones de visualización
         vista = st.radio(
             "Ver:",
             ["📊 Todas las áreas", "🔍 Departamento específico"],
@@ -1588,7 +1587,7 @@ def page_dashboard():
         )
         
         if vista == "📊 Todas las áreas":
-            # Gráfico de áreas apiladas (más claro que líneas)
+            # Gráfico de áreas apiladas por departamento
             df_pivot = df.pivot_table(
                 index='date', 
                 columns='department', 
@@ -1597,7 +1596,6 @@ def page_dashboard():
                 fill_value=0
             ).reset_index()
             
-            # Verificar que hay datos para graficar
             if len(df_pivot.columns) > 1:
                 fig = px.area(
                     df_pivot,
@@ -1625,7 +1623,7 @@ def page_dashboard():
             else:
                 st.info("No hay suficientes datos para mostrar el gráfico de áreas")
         
-        else:  # Departamento específico
+        else:
             deptos_disponibles = df['department'].unique()
             if len(deptos_disponibles) > 0:
                 depto = st.selectbox(
@@ -1634,19 +1632,43 @@ def page_dashboard():
                     key="depto_evolucion"
                 )
                 
-                df_filtrado = df[df['department'] == depto].groupby('date')['total'].sum().reset_index()
+                # Aquí modificamos para mostrar por categorías en lugar de solo total
+                df_depto = df[df['department'] == depto].groupby('date').agg({
+                    'autoliquidable': 'sum',
+                    'oferta': 'sum',
+                    'marca': 'sum',
+                    'adicional': 'sum'
+                }).reset_index()
                 
-                fig = px.line(
-                    df_filtrado,
-                    x='date',
-                    y='total',
-                    title=f'Evolución diaria - {depto}',
-                    markers=True,
-                    labels={'total': 'Unidades', 'date': 'Fecha'}
+                # Convertir a formato largo para plotly
+                df_melted = df_depto.melt(
+                    id_vars=['date'], 
+                    value_vars=['autoliquidable', 'oferta', 'marca', 'adicional'],
+                    var_name='Categoría', 
+                    value_name='Unidades'
                 )
                 
-                fig.update_traces(line=dict(width=3))
-                fig.update_layout(height=500)
+                # Mapear nombres más amigables
+                categoria_names = {
+                    'autoliquidable': 'Autoliquidable',
+                    'oferta': 'Oferta Semana',
+                    'marca': 'Marca Propia',
+                    'adicional': 'Producto Adicional'
+                }
+                df_melted['Categoría'] = df_melted['Categoría'].map(categoria_names)
+                
+                fig = px.line(
+                    df_melted,
+                    x='date',
+                    y='Unidades',
+                    color='Categoría',
+                    title=f'Evolución por categoría - {depto}',
+                    markers=True,
+                    labels={'date': 'Fecha', 'Unidades': 'Unidades vendidas'}
+                )
+                
+                fig.update_traces(line=dict(width=2))
+                fig.update_layout(height=500, hovermode='x unified')
                 
                 st.plotly_chart(fig, use_container_width=True)
         
@@ -1681,6 +1703,15 @@ def page_dashboard():
         dist_df = df.groupby('department')[['autoliquidable','oferta','marca','adicional']].sum().reset_index()
         dist_df_melted = dist_df.melt(id_vars=['department'], var_name='Tipo', value_name='Cantidad')
         
+        # Mapear nombres más amigables
+        tipo_names = {
+            'autoliquidable': 'Autoliquidable',
+            'oferta': 'Oferta Semana',
+            'marca': 'Marca Propia',
+            'adicional': 'Producto Adicional'
+        }
+        dist_df_melted['Tipo'] = dist_df_melted['Tipo'].map(tipo_names)
+        
         fig2 = px.bar(
             dist_df_melted, 
             x='department', 
@@ -1688,30 +1719,78 @@ def page_dashboard():
             color='Tipo',
             title="Distribución por departamento y tipo",
             barmode='stack',
-            labels={'department': 'Departamento', 'Cantidad': 'Unidades', 'Tipo': 'Tipo de venta'}
+            labels={'department': 'Departamento', 'Cantidad': 'Unidades', 'Tipo': 'Tipo de venta'},
+            text='Cantidad'
         )
+        
+        fig2.update_traces(texttemplate='%{text}', textposition='inside')
+        fig2.update_layout(uniformtext_minsize=8)
+        
         st.plotly_chart(fig2, use_container_width=True)
+        
+        # Gráfico de pastel para la distribución total
+        st.subheader("🥧 Distribución porcentual")
+        
+        totales = df[['autoliquidable', 'oferta', 'marca', 'adicional']].sum()
+        pie_df = pd.DataFrame({
+            'Tipo': ['Autoliquidable', 'Oferta Semana', 'Marca Propia', 'Producto Adicional'],
+            'Cantidad': [totales['autoliquidable'], totales['oferta'], totales['marca'], totales['adicional']]
+        })
+        
+        fig_pie = px.pie(
+            pie_df, 
+            values='Cantidad', 
+            names='Tipo',
+            title='Distribución total por tipo de venta',
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        
+        fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+        st.plotly_chart(fig_pie, use_container_width=True)
     
-    # ===== PESTAÑA 3: POR EMPLEADO =====
+    # ===== PESTAÑA 3: POR EMPLEADO (MEJORADA CON CATEGORÍAS) =====
     with tab3:
         st.subheader("👥 Ventas por empleado")
         
+        # Resumen por empleado con todas las categorías
         empleado_resumen = df.groupby(['name', 'department']).agg({
+            'autoliquidable': 'sum',
+            'oferta': 'sum',
+            'marca': 'sum',
+            'adicional': 'sum',
             'total': 'sum'
         }).reset_index().sort_values(['department', 'total'], ascending=[True, False])
         
         if not empleado_resumen.empty:
-            fig_empleados = px.bar(
-                empleado_resumen,
-                x='name',
-                y='total',
-                color='department',
-                title='Ventas Totales por Empleado',
-                labels={'total': 'Total de Unidades', 'name': 'Empleado', 'department': 'Departamento'},
-                text='total'
+            # Gráfico de barras apiladas por categoría
+            empleado_melted = empleado_resumen.melt(
+                id_vars=['name', 'department'],
+                value_vars=['autoliquidable', 'oferta', 'marca', 'adicional'],
+                var_name='Categoría',
+                value_name='Cantidad'
             )
             
-            fig_empleados.update_traces(texttemplate='%{text}', textposition='outside')
+            # Mapear nombres
+            cat_names = {
+                'autoliquidable': 'Autoliquidable',
+                'oferta': 'Oferta',
+                'marca': 'Marca Propia',
+                'adicional': 'Adicional'
+            }
+            empleado_melted['Categoría'] = empleado_melted['Categoría'].map(cat_names)
+            
+            fig_empleados = px.bar(
+                empleado_melted,
+                x='name',
+                y='Cantidad',
+                color='Categoría',
+                title='Ventas por Empleado - Detalle por Categoría',
+                labels={'name': 'Empleado', 'Cantidad': 'Unidades', 'Categoría': 'Tipo'},
+                barmode='stack',
+                text='Cantidad'
+            )
+            
+            fig_empleados.update_traces(texttemplate='%{text}', textposition='inside')
             fig_empleados.update_layout(
                 xaxis_tickangle=-45,
                 uniformtext_minsize=8,
@@ -1721,13 +1800,46 @@ def page_dashboard():
             st.plotly_chart(fig_empleados, use_container_width=True)
             
             st.divider()
-            st.subheader("📋 Tabla de Rendimiento")
+            st.subheader("📋 Tabla de Rendimiento Detallada")
             
+            # Tabla detallada con todas las categorías
             tabla_empleados = empleado_resumen.copy()
-            tabla_empleados['total'] = tabla_empleados['total'].apply(lambda x: f"{int(x):,}")
-            tabla_empleados.columns = ['Empleado', 'Departamento', 'Total Vendido']
+            
+            # Formatear números
+            for col in ['autoliquidable', 'oferta', 'marca', 'adicional', 'total']:
+                tabla_empleados[col] = tabla_empleados[col].apply(lambda x: f"{int(x):,}")
+            
+            # Renombrar columnas
+            tabla_empleados.columns = [
+                'Empleado', 'Departamento', 
+                'Autoliquidable', 'Oferta', 'Marca Propia', 'Adicional', 'Total'
+            ]
+            
+            # Reordenar columnas
+            column_order = ['Empleado', 'Departamento', 'Autoliquidable', 'Oferta', 
+                           'Marca Propia', 'Adicional', 'Total']
+            tabla_empleados = tabla_empleados[column_order]
             
             st.dataframe(tabla_empleados, use_container_width=True, hide_index=True)
+            
+            # Opción para ver resumen por departamento
+            with st.expander("📊 Ver resumen por departamento"):
+                depto_resumen = df.groupby('department').agg({
+                    'autoliquidable': 'sum',
+                    'oferta': 'sum',
+                    'marca': 'sum',
+                    'adicional': 'sum',
+                    'total': 'sum'
+                }).reset_index()
+                
+                for col in ['autoliquidable', 'oferta', 'marca', 'adicional', 'total']:
+                    depto_resumen[col] = depto_resumen[col].apply(lambda x: f"{int(x):,}")
+                
+                depto_resumen.columns = [
+                    'Departamento', 'Autoliquidable', 'Oferta', 'Marca Propia', 'Adicional', 'Total'
+                ]
+                
+                st.dataframe(depto_resumen, use_container_width=True, hide_index=True)
         else:
             st.info("ℹ️ No hay datos de empleados para mostrar")
 def page_ranking():
