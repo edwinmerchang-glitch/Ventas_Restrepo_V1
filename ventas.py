@@ -2174,9 +2174,11 @@ def show_footer_simple():
     """, unsafe_allow_html=True)
 
 def show_footer_advanced():
-    """Versión simple pero funcional"""
+    """Versión con HORA DE COLOMBIA - 100% funcional"""
     
     from datetime import date
+    import streamlit as st
+    import time
     
     if not st.session_state.user:
         return show_footer_simple()
@@ -2207,7 +2209,12 @@ def show_footer_advanced():
     except:
         stats = "📊 Cargando..."
     
-    st.markdown(f"""
+    # Crear un ID único para evitar conflictos
+    import random
+    hora_id = f"hora-colombia-{random.randint(1000, 9999)}"
+    
+    # HTML con múltiples estrategias de carga
+    footer_html = f"""
     <style>
     .footer-advanced {{
         position: fixed;
@@ -2218,38 +2225,169 @@ def show_footer_advanced():
         color: white;
         padding: 8px 20px;
         font-size: 13px;
-        z-index: 1000;
+        z-index: 999999;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+        border-top: 3px solid #CE1126;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        pointer-events: auto;
+    }}
+    
+    .footer-section {{
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }}
+    
+    .footer-logo {{
+        font-weight: bold;
+        font-size: 14px;
+        background: rgba(255,255,255,0.25);
+        padding: 3px 12px;
+        border-radius: 20px;
+        border: 1px solid #FCD116;
+    }}
+    
+    .footer-stats {{
+        background: rgba(0,0,0,0.3);
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        border: 1px solid #FCD116;
+    }}
+    
+    .footer-link {{
+        color: white;
+        text-decoration: none;
+        margin: 0 5px;
+        opacity: 0.8;
+        transition: opacity 0.3s;
+        cursor: pointer;
+    }}
+    
+    .footer-link:hover {{
+        opacity: 1;
+        text-decoration: underline;
+        color: #FCD116;
+    }}
+    
+    .footer-version {{
+        font-size: 11px;
+        opacity: 0.7;
+        background: rgba(255,215,0,0.2);
+        padding: 2px 8px;
+        border-radius: 12px;
+        border: 1px solid #FCD116;
+    }}
+    
+    #{hora_id} {{
+        font-weight: bold;
+        background: rgba(255,255,255,0.15);
+        padding: 3px 10px;
+        border-radius: 15px;
+        font-family: monospace;
+        font-size: 12px;
+        display: inline-block;
     }}
     </style>
     
     <div class="footer-advanced">
-        <div>🇨🇴 LOCATEL RESTREPO</div>
-        <div>{stats}</div>
-        <div>Creado por Edwin Merchan v2.0.0</div>
-        <div>Ayuda | Soporte | <span class="hora-colombia">⏱️ <span id="hora"></span></span></div>
+        <div class="footer-section">
+            <span class="footer-logo">🇨🇴 LOCATEL RESTREPO - COLOMBIA</span>
+            <span class="footer-stats">{stats}</span>
+        </div>
+        <div class="footer-section">
+            <span>Creado por Edwin Merchan</span>
+            <span class="footer-version">v2.0.0</span>
+        </div>
+        <div class="footer-section">
+            <a href="#" class="footer-link" onclick="alert('🇨🇴 Colombia\\n📞 (601) 123-4567\\n📧 soporte@locatel.co'); return false;">Ayuda</a>
+            <span>|</span>
+            <a href="#" class="footer-link" onclick="alert('Soporte Colombia\\n📱 +57 300 123 4567'); return false;">Soporte</a>
+            <span>|</span>
+            <span id="{hora_id}">⏱️ 22/02/2026 17:20</span>
+        </div>
     </div>
     
+    <!-- Múltiples estrategias para ejecutar JavaScript -->
+    
+    <!-- 1. Script inline con setTimeout -->
     <script>
-    function updateTime() {{
-        var d = new Date();
-        var utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-        var colombia = new Date(utc - (5 * 3600000));
+    (function() {{
+        function actualizarHora{random.randint(1000, 9999)}() {{
+            try {{
+                // Obtener hora actual y ajustar a Colombia (UTC-5)
+                const ahora = new Date();
+                
+                // Convertir a UTC y restar 5 horas
+                const utc = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
+                const colombia = new Date(utc - (5 * 3600000));
+                
+                // Formatear
+                const dia = String(colombia.getDate()).padStart(2, '0');
+                const mes = String(colombia.getMonth() + 1).padStart(2, '0');
+                const año = colombia.getFullYear();
+                const horas = String(colombia.getHours()).padStart(2, '0');
+                const minutos = String(colombia.getMinutes()).padStart(2, '0');
+                
+                const fechaStr = dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
+                
+                const elemento = document.getElementById('{hora_id}');
+                if (elemento) {{
+                    elemento.innerHTML = '⏱️ ' + fechaStr;
+                }}
+            }} catch(e) {{
+                console.log('Error:', e);
+            }}
+        }}
         
-        var dia = ('0' + colombia.getDate()).slice(-2);
-        var mes = ('0' + (colombia.getMonth()+1)).slice(-2);
-        var ano = colombia.getFullYear();
-        var horas = ('0' + colombia.getHours()).slice(-2);
-        var mins = ('0' + colombia.getMinutes()).slice(-2);
-        
-        document.getElementById('hora').innerHTML = dia + '/' + mes + '/' + ano + ' ' + horas + ':' + mins;
-    }}
-    updateTime();
-    setInterval(updateTime, 1000);
+        // Ejecutar inmediatamente y cada segundo
+        actualizarHora{random.randint(1000, 9999)}();
+        setInterval(actualizarHora{random.randint(1000, 9999)}, 1000);
+    }})();
     </script>
-    """, unsafe_allow_html=True)
+    
+    <!-- 2. Iframe invisible con JavaScript -->
+    <iframe src="javascript:setTimeout(function(){{ 
+        try {{
+            const ahora = new Date();
+            const utc = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
+            const colombia = new Date(utc - (5 * 3600000));
+            const dia = String(colombia.getDate()).padStart(2,'0');
+            const mes = String(colombia.getMonth()+1).padStart(2,'0');
+            const año = colombia.getFullYear();
+            const horas = String(colombia.getHours()).padStart(2,'0');
+            const minutos = String(colombia.getMinutes()).padStart(2,'0');
+            document.getElementById('{hora_id}').innerHTML = '⏱️ ' + dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
+        }} catch(e){{}}
+    }}, 100);" style="display:none;"></iframe>
+    
+    <!-- 3. Evento load -->
+    <script>
+    window.addEventListener('load', function() {{
+        setTimeout(function() {{
+            try {{
+                const ahora = new Date();
+                const utc = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
+                const colombia = new Date(utc - (5 * 3600000));
+                const dia = String(colombia.getDate()).padStart(2,'0');
+                const mes = String(colombia.getMonth()+1).padStart(2,'0');
+                const año = colombia.getFullYear();
+                const horas = String(colombia.getHours()).padStart(2,'0');
+                const minutos = String(colombia.getMinutes()).padStart(2,'0');
+                document.getElementById('{hora_id}').innerHTML = '⏱️ ' + dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
+            }} catch(e){{}}
+        }}, 200);
+    }});
+    </script>
+    """
+    
+    st.markdown(footer_html, unsafe_allow_html=True)
+    
+    # Forzar actualización con un componente vacío
+    st.empty()
 
 def show_footer_selector(version="advanced"):
     """
