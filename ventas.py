@@ -2176,7 +2176,7 @@ def show_footer_simple():
 def show_footer_advanced():
     """Versión avanzada del footer con estadísticas y HORA REAL DEL PC usando JavaScript"""
     
-    from datetime import datetime
+    from datetime import date
     
     if not st.session_state.user:
         return show_footer_simple()
@@ -2207,10 +2207,10 @@ def show_footer_advanced():
     except:
         stats = "📊 Cargando..."
     
-    # ===== IMPORTANTE: JavaScript para obtener la hora REAL del PC =====
-    st.markdown(f"""
+    # IMPORTANTE: Todo el HTML y JavaScript debe estar DENTRO del st.markdown
+    st.markdown("""
     <style>
-    .footer-advanced {{
+    .footer-advanced {
         position: fixed;
         bottom: 0;
         left: 0;
@@ -2226,76 +2226,76 @@ def show_footer_advanced():
         box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
         backdrop-filter: blur(10px);
         border-top: 1px solid rgba(255,255,255,0.2);
-    }}
+    }
     
-    .footer-section {{
+    .footer-section {
         display: flex;
         align-items: center;
         gap: 15px;
-    }}
+    }
     
-    .footer-logo {{
+    .footer-logo {
         font-weight: bold;
         font-size: 14px;
         background: rgba(255,255,255,0.2);
         padding: 3px 12px;
         border-radius: 20px;
         letter-spacing: 0.5px;
-    }}
+    }
     
-    .footer-stats {{
+    .footer-stats {
         background: rgba(0,0,0,0.2);
         padding: 3px 12px;
         border-radius: 20px;
         font-size: 12px;
-    }}
+    }
     
-    .footer-link {{
+    .footer-link {
         color: white;
         text-decoration: none;
         margin: 0 5px;
         opacity: 0.8;
         transition: opacity 0.3s;
-    }}
+    }
     
-    .footer-link:hover {{
+    .footer-link:hover {
         opacity: 1;
         text-decoration: underline;
-    }}
+    }
     
-    .footer-version {{
+    .footer-version {
         font-size: 11px;
         opacity: 0.7;
         background: rgba(255,255,255,0.1);
         padding: 2px 8px;
         border-radius: 12px;
-    }}
+    }
     
-    #hora-pc {{
+    #hora-pc {
         font-weight: normal;
-    }}
+    }
     </style>
     
     <div class="footer-advanced">
         <div class="footer-section">
             <span class="footer-logo">🏥 LOCATEL RESTREPO</span>
-            <span class="footer-stats">{stats}</span>
+            <span class="footer-stats">""" + stats + """</span>
         </div>
         <div class="footer-section">
             <span>Creado por Edwin Merchan</span>
             <span class="footer-version">v2.0.0</span>
         </div>
         <div class="footer-section">
-            <a href="#" class="footer-link" onclick="alert('Ayuda disponible\nContacta a soporte@locatel.co')">Ayuda</a>
+            <a href="#" class="footer-link" onclick="alert('Ayuda disponible\\nContacta a soporte@locatel.co')">Ayuda</a>
             <span>|</span>
-            <a href="#" class="footer-link" onclick="alert('Soporte técnico\nWhatsApp: +57 300 123 4567')">Soporte</a>
+            <a href="#" class="footer-link" onclick="alert('Soporte técnico\\nWhatsApp: +57 300 123 4567')">Soporte</a>
             <span>|</span>
-            <span id="hora-pc">📅 Cargando hora...</span>
+            <span id="hora-pc">📅 Cargando...</span>
         </div>
     </div>
     
     <script>
-    function actualizarHoraPC() {{
+    function actualizarHoraPC() {
         // Obtener la fecha y hora del PC del usuario
         const ahora = new Date();
         
@@ -2306,13 +2306,13 @@ def show_footer_advanced():
         const horas = String(ahora.getHours()).padStart(2, '0');
         const minutos = String(ahora.getMinutes()).padStart(2, '0');
         
-        const fechaFormateada = `${{dia}}/${{mes}}/${{año}} ${{horas}}:${{minutos}}`;
+        const fechaFormateada = dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
         
         // Actualizar el elemento
-        document.getElementById('hora-pc').innerHTML = `📅 ${{fechaFormateada}}`;
-    }}
+        document.getElementById('hora-pc').innerHTML = '📅 ' + fechaFormateada;
+    }
     
-    // Actualizar cada segundo para que sea exacto
+    // Actualizar cada segundo
     actualizarHoraPC();
     setInterval(actualizarHoraPC, 1000);
     </script>
