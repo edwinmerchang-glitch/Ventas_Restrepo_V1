@@ -2174,10 +2174,16 @@ def show_footer_simple():
     """, unsafe_allow_html=True)
 
 def show_footer_advanced():
-    """Versión avanzada del footer con estadísticas en tiempo real"""
+    """Versión avanzada del footer con estadísticas y fecha/hora del PC"""
+    
+    from datetime import datetime
     
     if not st.session_state.user:
         return show_footer_simple()
+    
+    # Obtener fecha y hora actual del PC
+    ahora = datetime.now()
+    fecha_hora_actual = ahora.strftime('%d/%m/%Y %H:%M')
     
     try:
         if st.session_state.user["role"] == "admin":
@@ -2283,7 +2289,7 @@ def show_footer_advanced():
             <span>|</span>
             <a href="#" class="footer-link">Soporte</a>
             <span>|</span>
-            <span>{datetime.now().strftime('%d/%m/%Y %H:%M')}</span>
+            <span>📅 {fecha_hora_actual}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
