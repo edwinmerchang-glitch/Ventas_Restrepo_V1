@@ -2174,10 +2174,10 @@ def show_footer_simple():
     """, unsafe_allow_html=True)
 
 def show_footer_advanced():
-    """Versión con HORA DE COLOMBIA - 100% funcional"""
+    """Versión con HORA DE COLOMBIA usando Python (100% funcional)"""
     
-    from datetime import date
-    import streamlit as st
+    from datetime import datetime, timedelta
+    from dateutil import tz
     import time
     
     if not st.session_state.user:
@@ -2209,12 +2209,21 @@ def show_footer_advanced():
     except:
         stats = "📊 Cargando..."
     
-    # Crear un ID único para evitar conflictos
-    import random
-    hora_id = f"hora-colombia-{random.randint(1000, 9999)}"
+    # Obtener hora actual de Colombia (UTC-5)
+    ahora_utc = datetime.utcnow()
+    hora_colombia = ahora_utc - timedelta(hours=5)
+    fecha_hora_actual = hora_colombia.strftime('%d/%m/%Y %H:%M')
     
-    # HTML con múltiples estrategias de carga
-    footer_html = f"""
+    # Actualizar cada 60 segundos usando Streamlit's built-in rerun
+    if 'last_update' not in st.session_state:
+        st.session_state.last_update = time.time()
+    
+    # Si pasó más de 60 segundos, actualizar
+    if time.time() - st.session_state.last_update > 60:
+        st.session_state.last_update = time.time()
+        st.rerun()
+    
+    st.markdown(f"""
     <style>
     .footer-advanced {{
         position: fixed;
@@ -2225,14 +2234,13 @@ def show_footer_advanced():
         color: white;
         padding: 8px 20px;
         font-size: 13px;
-        z-index: 999999;
+        z-index: 1000;
         display: flex;
         justify-content: space-between;
         align-items: center;
         box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
         border-top: 3px solid #CE1126;
         font-family: 'Segoe UI', Arial, sans-serif;
-        pointer-events: auto;
     }}
     
     .footer-section {{
@@ -2282,14 +2290,13 @@ def show_footer_advanced():
         border: 1px solid #FCD116;
     }}
     
-    #{hora_id} {{
+    .hora-colombia {{
         font-weight: bold;
         background: rgba(255,255,255,0.15);
         padding: 3px 10px;
         border-radius: 15px;
         font-family: monospace;
         font-size: 12px;
-        display: inline-block;
     }}
     </style>
     
@@ -2307,87 +2314,10 @@ def show_footer_advanced():
             <span>|</span>
             <a href="#" class="footer-link" onclick="alert('Soporte Colombia\\n📱 +57 300 123 4567'); return false;">Soporte</a>
             <span>|</span>
-            <span id="{hora_id}">⏱️ 22/02/2026 17:20</span>
+            <span class="hora-colombia">⏱️ {fecha_hora_actual}</span>
         </div>
     </div>
-    
-    <!-- Múltiples estrategias para ejecutar JavaScript -->
-    
-    <!-- 1. Script inline con setTimeout -->
-    <script>
-    (function() {{
-        function actualizarHora{random.randint(1000, 9999)}() {{
-            try {{
-                // Obtener hora actual y ajustar a Colombia (UTC-5)
-                const ahora = new Date();
-                
-                // Convertir a UTC y restar 5 horas
-                const utc = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
-                const colombia = new Date(utc - (5 * 3600000));
-                
-                // Formatear
-                const dia = String(colombia.getDate()).padStart(2, '0');
-                const mes = String(colombia.getMonth() + 1).padStart(2, '0');
-                const año = colombia.getFullYear();
-                const horas = String(colombia.getHours()).padStart(2, '0');
-                const minutos = String(colombia.getMinutes()).padStart(2, '0');
-                
-                const fechaStr = dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
-                
-                const elemento = document.getElementById('{hora_id}');
-                if (elemento) {{
-                    elemento.innerHTML = '⏱️ ' + fechaStr;
-                }}
-            }} catch(e) {{
-                console.log('Error:', e);
-            }}
-        }}
-        
-        // Ejecutar inmediatamente y cada segundo
-        actualizarHora{random.randint(1000, 9999)}();
-        setInterval(actualizarHora{random.randint(1000, 9999)}, 1000);
-    }})();
-    </script>
-    
-    <!-- 2. Iframe invisible con JavaScript -->
-    <iframe src="javascript:setTimeout(function(){{ 
-        try {{
-            const ahora = new Date();
-            const utc = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
-            const colombia = new Date(utc - (5 * 3600000));
-            const dia = String(colombia.getDate()).padStart(2,'0');
-            const mes = String(colombia.getMonth()+1).padStart(2,'0');
-            const año = colombia.getFullYear();
-            const horas = String(colombia.getHours()).padStart(2,'0');
-            const minutos = String(colombia.getMinutes()).padStart(2,'0');
-            document.getElementById('{hora_id}').innerHTML = '⏱️ ' + dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
-        }} catch(e){{}}
-    }}, 100);" style="display:none;"></iframe>
-    
-    <!-- 3. Evento load -->
-    <script>
-    window.addEventListener('load', function() {{
-        setTimeout(function() {{
-            try {{
-                const ahora = new Date();
-                const utc = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
-                const colombia = new Date(utc - (5 * 3600000));
-                const dia = String(colombia.getDate()).padStart(2,'0');
-                const mes = String(colombia.getMonth()+1).padStart(2,'0');
-                const año = colombia.getFullYear();
-                const horas = String(colombia.getHours()).padStart(2,'0');
-                const minutos = String(colombia.getMinutes()).padStart(2,'0');
-                document.getElementById('{hora_id}').innerHTML = '⏱️ ' + dia + '/' + mes + '/' + año + ' ' + horas + ':' + minutos;
-            }} catch(e){{}}
-        }}, 200);
-    }});
-    </script>
-    """
-    
-    st.markdown(footer_html, unsafe_allow_html=True)
-    
-    # Forzar actualización con un componente vacío
-    st.empty()
+    """, unsafe_allow_html=True)
 
 def show_footer_selector(version="advanced"):
     """
