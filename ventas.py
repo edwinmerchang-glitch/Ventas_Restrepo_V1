@@ -1572,117 +1572,164 @@ def page_dashboard():
     with col4:
         st.metric("Marca Propia", f"{int(df['marca'].sum()):,}")
     
+    # Crear las pestañas AQUÍ
     tab1, tab2, tab3 = st.tabs(["📈 Evolución", "📊 Distribución", "👥 Por empleado"])
     
-with tab1:
-    st.subheader("📈 Evolución diaria de ventas")
+    # ===== PESTAÑA 1: EVOLUCIÓN (MEJORADA) =====
+    with tab1:
+        st.subheader("📈 Evolución diaria de ventas")
+        
+        # Opciones de visualización
+        vista = st.radio(
+            "Ver:",
+            ["📊 Todas las áreas", "🔍 Departamento específico"],
+            horizontal=True,
+            key="vista_evolucion"
+        )
+        
+        if vista == "📊 Todas las áreas":
+            # Gráfico de áreas apiladas (más claro que líneas)
+            df_pivot = df.pivot_table(
+                index='date', 
+                columns='department', 
+                values='total', 
+                aggfunc='sum',
+                fill_value=0
+            ).reset_index()
+            
+            # Verificar que hay datos para graficar
+            if len(df_pivot.columns) > 1:
+                fig = px.area(
+                    df_pivot,
+                    x='date',
+                    y=df_pivot.columns[1:],
+                    title='Evolución de ventas - Todas las áreas',
+                    labels={'value': 'Unidades', 'date': 'Fecha', 'variable': 'Departamento'},
+                    color_discrete_map={
+                        'Droguería': '#FF6B6B',
+                        'Equipos Médicos': '#4ECDC4',
+                        'Pasillos': '#45B7D1',
+                        'Cajas': '#96CEB4'
+                    }
+                )
+                
+                fig.update_layout(
+                    hovermode='x unified',
+                    legend_title_text='Departamento',
+                    xaxis_title='Fecha',
+                    yaxis_title='Unidades vendidas',
+                    height=500
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No hay suficientes datos para mostrar el gráfico de áreas")
+        
+        else:  # Departamento específico
+            deptos_disponibles = df['department'].unique()
+            if len(deptos_disponibles) > 0:
+                depto = st.selectbox(
+                    "Selecciona departamento:", 
+                    deptos_disponibles,
+                    key="depto_evolucion"
+                )
+                
+                df_filtrado = df[df['department'] == depto].groupby('date')['total'].sum().reset_index()
+                
+                fig = px.line(
+                    df_filtrado,
+                    x='date',
+                    y='total',
+                    title=f'Evolución diaria - {depto}',
+                    markers=True,
+                    labels={'total': 'Unidades', 'date': 'Fecha'}
+                )
+                
+                fig.update_traces(line=dict(width=3))
+                fig.update_layout(height=500)
+                
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # Métricas de resumen
+        st.divider()
+        col1, col2, col3 = st.columns(3)
+        
+        df_daily = df.groupby('date')['total'].sum().reset_index()
+        
+        with col1:
+            st.metric(
+                "📊 Promedio diario", 
+                f"{int(df_daily['total'].mean()):,}",
+                help="Promedio de unidades vendidas por día"
+            )
+        with col2:
+            mejor_dia = df_daily.loc[df_daily['total'].idxmax()]
+            st.metric(
+                "🏆 Mejor día", 
+                f"{int(mejor_dia['total']):,}",
+                help=f"Fecha: {mejor_dia['date'].strftime('%d/%m/%Y')}"
+            )
+        with col3:
+            st.metric(
+                "📦 Total período", 
+                f"{int(df_daily['total'].sum()):,}",
+                help="Total de unidades en el período seleccionado"
+            )
     
-    # Preparar datos para áreas apiladas
-    df_pivot = df.pivot_table(
-        index='date', 
-        columns='department', 
-        values='total', 
-        aggfunc='sum',
-        fill_value=0
-    ).reset_index()
-    
-    # Crear gráfico de áreas apiladas
-    fig = px.area(
-        df_pivot,
-        x='date',
-        y=df_pivot.columns[1:],  # Todos los departamentos
-        title='Evolución de ventas por departamento (áreas apiladas)',
-        labels={'value': 'Unidades vendidas', 'date': 'Fecha', 'variable': 'Departamento'},
-        color_discrete_map={
-            'Droguería': '#FF6B6B',
-            'Equipos Médicos': '#4ECDC4',
-            'Pasillos': '#45B7D1',
-            'Cajas': '#96CEB4'
-        }
-    )
-    
-    fig.update_layout(
-        hovermode='x unified',
-        legend_title_text='Departamento',
-        xaxis_title='Fecha',
-        yaxis_title='Unidades vendidas'
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Mostrar total por día
-    df_daily = df.groupby('date')['total'].sum().reset_index()
-    df_daily['date'] = pd.to_datetime(df_daily['date']).dt.strftime('%d/%m')
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Promedio diario", f"{int(df_daily['total'].mean()):,}")
-    with col2:
-        st.metric("Mejor día", f"{int(df_daily['total'].max()):,}")
-    with col3:
-        st.metric("Total período", f"{int(df_daily['total'].sum()):,}")
-    
+    # ===== PESTAÑA 2: DISTRIBUCIÓN =====
     with tab2:
         dist_df = df.groupby('department')[['autoliquidable','oferta','marca','adicional']].sum().reset_index()
         dist_df_melted = dist_df.melt(id_vars=['department'], var_name='Tipo', value_name='Cantidad')
-        fig2 = px.bar(dist_df_melted, x='department', y='Cantidad', color='Tipo',
-                     title="Distribución por departamento y tipo",
-                     barmode='stack')
+        
+        fig2 = px.bar(
+            dist_df_melted, 
+            x='department', 
+            y='Cantidad', 
+            color='Tipo',
+            title="Distribución por departamento y tipo",
+            barmode='stack',
+            labels={'department': 'Departamento', 'Cantidad': 'Unidades', 'Tipo': 'Tipo de venta'}
+        )
         st.plotly_chart(fig2, use_container_width=True)
     
+    # ===== PESTAÑA 3: POR EMPLEADO =====
     with tab3:
         st.subheader("👥 Ventas por empleado")
-
-        # --- MEJORA: Crear un resumen más claro ---
-        # Calculamos el total por empleado para el período seleccionado
+        
         empleado_resumen = df.groupby(['name', 'department']).agg({
             'total': 'sum'
         }).reset_index().sort_values(['department', 'total'], ascending=[True, False])
-
+        
         if not empleado_resumen.empty:
-            # Creamos el gráfico de barras. Usamos 'name' en el eje X y coloreamos por 'department'
             fig_empleados = px.bar(
                 empleado_resumen,
                 x='name',
                 y='total',
                 color='department',
                 title='Ventas Totales por Empleado',
-                labels={'total': 'Total de Unidades Vendidas', 'name': 'Empleado', 'department': 'Departamento'},
-                text='total'  # Mostrar el valor sobre la barra
+                labels={'total': 'Total de Unidades', 'name': 'Empleado', 'department': 'Departamento'},
+                text='total'
             )
-
-            # Personalizamos un poco el gráfico para mejor legibilidad
+            
             fig_empleados.update_traces(texttemplate='%{text}', textposition='outside')
             fig_empleados.update_layout(
-                xaxis_tickangle=-45,  # Rotar las etiquetas del eje X si son largas
+                xaxis_tickangle=-45,
                 uniformtext_minsize=8,
-                uniformtext_mode='hide'
+                height=500
             )
             
             st.plotly_chart(fig_empleados, use_container_width=True)
             
-            # --- MEJORA: Añadir una tabla de resumen rápido debajo del gráfico ---
             st.divider()
-            st.subheader("📋 Tabla de Rendimiento por Empleado")
+            st.subheader("📋 Tabla de Rendimiento")
             
-            # Formateamos la tabla para que sea más legible
             tabla_empleados = empleado_resumen.copy()
             tabla_empleados['total'] = tabla_empleados['total'].apply(lambda x: f"{int(x):,}")
             tabla_empleados.columns = ['Empleado', 'Departamento', 'Total Vendido']
             
-            # Añadimos un pequeño ranking visual con colores en la tabla
-            def highlight_max(s):
-                is_max = s == s.max()
-                return ['background-color: #90EE90' if v else '' for v in is_max]
-
-            st.dataframe(
-                tabla_empleados.style.apply(highlight_max, subset=['Total Vendido']),
-                use_container_width=True,
-                hide_index=True
-            )
-
+            st.dataframe(tabla_empleados, use_container_width=True, hide_index=True)
         else:
-            st.info("ℹ️ No hay datos de empleados para mostrar en este período.")
+            st.info("ℹ️ No hay datos de empleados para mostrar")
 def page_ranking():
     st.title("🏆 Ranking de Ventas")
     
