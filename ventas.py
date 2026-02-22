@@ -1588,15 +1588,58 @@ def page_dashboard():
         st.plotly_chart(fig2, use_container_width=True)
     
     with tab3:
-        emp_df = df.groupby(['name', 'department']).agg({
-            'total': 'sum'
-        }).reset_index()
-        
-        fig3 = px.bar(emp_df, x='name', y='total', color='department',
-                     title="Ventas por empleado",
-                     barmode='group')
-        st.plotly_chart(fig3, use_container_width=True)
+        st.subheader("👥 Ventas por empleado")
 
+        # --- MEJORA: Crear un resumen más claro ---
+        # Calculamos el total por empleado para el período seleccionado
+        empleado_resumen = df.groupby(['name', 'department']).agg({
+            'total': 'sum'
+        }).reset_index().sort_values(['department', 'total'], ascending=[True, False])
+
+        if not empleado_resumen.empty:
+            # Creamos el gráfico de barras. Usamos 'name' en el eje X y coloreamos por 'department'
+            fig_empleados = px.bar(
+                empleado_resumen,
+                x='name',
+                y='total',
+                color='department',
+                title='Ventas Totales por Empleado',
+                labels={'total': 'Total de Unidades Vendidas', 'name': 'Empleado', 'department': 'Departamento'},
+                text='total'  # Mostrar el valor sobre la barra
+            )
+
+            # Personalizamos un poco el gráfico para mejor legibilidad
+            fig_empleados.update_traces(texttemplate='%{text}', textposition='outside')
+            fig_empleados.update_layout(
+                xaxis_tickangle=-45,  # Rotar las etiquetas del eje X si son largas
+                uniformtext_minsize=8,
+                uniformtext_mode='hide'
+            )
+            
+            st.plotly_chart(fig_empleados, use_container_width=True)
+            
+            # --- MEJORA: Añadir una tabla de resumen rápido debajo del gráfico ---
+            st.divider()
+            st.subheader("📋 Tabla de Rendimiento por Empleado")
+            
+            # Formateamos la tabla para que sea más legible
+            tabla_empleados = empleado_resumen.copy()
+            tabla_empleados['total'] = tabla_empleados['total'].apply(lambda x: f"{int(x):,}")
+            tabla_empleados.columns = ['Empleado', 'Departamento', 'Total Vendido']
+            
+            # Añadimos un pequeño ranking visual con colores en la tabla
+            def highlight_max(s):
+                is_max = s == s.max()
+                return ['background-color: #90EE90' if v else '' for v in is_max]
+
+            st.dataframe(
+                tabla_empleados.style.apply(highlight_max, subset=['Total Vendido']),
+                use_container_width=True,
+                hide_index=True
+            )
+
+        else:
+            st.info("ℹ️ No hay datos de empleados para mostrar en este período.")
 def page_ranking():
     st.title("🏆 Ranking de Ventas")
     
