@@ -1,4 +1,4 @@
 streamlit
 pandas
-bcrypt
-streamlit-extras
+openpyxl
+plotly
