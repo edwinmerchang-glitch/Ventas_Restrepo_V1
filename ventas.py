@@ -61,21 +61,562 @@ DEPARTAMENTOS = [
     "Cajas"
 ]
 
+# ============= ESTILOS CSS MODERNOS =============
+# Reemplaza la función load_css() con esta versión modernizada
+
 def load_css():
-    """Cargar estilos CSS"""
+    """Cargar estilos CSS modernos"""
+    st.markdown("""
+    <style>
+    /* Importar fuentes modernas */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Reset y estilos base */
+    .stApp {
+        background: #f5f7fa;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Ocultar el header de Streamlit */
+    header[data-testid="stHeader"] {
+        background: transparent;
+        box-shadow: none;
+    }
+    
+    /* Estilo para el contenido principal */
+    .main-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    /* Tarjetas modernas */
+    .modern-card {
+        background: white;
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .modern-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Header principal */
+    .app-header {
+        background: white;
+        padding: 1rem 2rem;
+        border-bottom: 1px solid #e9ecef;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .logo-icon {
+        font-size: 32px;
+    }
+    
+    .logo-text {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1a1a2e;
+        letter-spacing: -0.5px;
+    }
+    
+    .logo-subtitle {
+        font-size: 14px;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+    
+    /* Campos de formulario modernos */
+    .modern-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .modern-input:focus {
+        outline: none;
+        border-color: #4f7cff;
+        box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.1);
+    }
+    
+    /* Botones modernos */
+    .modern-btn {
+        background: #4f7cff;
+        color: white;
+        border: none;
+        padding: 12px 28px;
+        border-radius: 12px;
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .modern-btn:hover {
+        background: #3a5fd0;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(79, 124, 255, 0.3);
+    }
+    
+    .modern-btn-secondary {
+        background: white;
+        color: #4f7cff;
+        border: 1px solid #e9ecef;
+    }
+    
+    .modern-btn-secondary:hover {
+        background: #f8f9fa;
+        border-color: #4f7cff;
+    }
+    
+    /* Grid de búsqueda */
+    .search-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .search-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    /* Badges y etiquetas */
+    .badge-modern {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .badge-info {
+        background: #e7f1ff;
+        color: #004085;
+    }
+    
+    /* Tabla moderna */
+    .modern-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .modern-table th {
+        text-align: left;
+        padding: 12px;
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .modern-table td {
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
+        color: #6c757d;
+    }
+    
+    /* Métricas */
+    .metric-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f0f0f0;
+    }
+    
+    .metric-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin: 10px 0;
+    }
+    
+    .metric-label {
+        font-size: 14px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Sidebar moderno */
+    [data-testid="stSidebar"] {
+        background: white;
+        border-right: 1px solid #e9ecef;
+    }
+    
+    [data-testid="stSidebar"] .stButton button {
+        background: transparent;
+        border: none;
+        color: #495057;
+        font-weight: 500;
+        justify-content: flex-start;
+        padding: 10px 16px;
+        border-radius: 12px;
+        margin: 4px 0;
+        transition: all 0.2s;
+    }
+    
+    [data-testid="stSidebar"] .stButton button:hover {
+        background: #f8f9fa;
+        color: #4f7cff;
+    }
+    
+    /* Footer moderno */
+    .modern-footer {
+        background: white;
+        border-top: 1px solid #e9ecef;
+        padding: 1rem 2rem;
+        margin-top: 3rem;
+        text-align: center;
+        font-size: 13px;
+        color: #6c757d;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .search-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .app-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def create_modern_header():
+    """Crear header moderno como en la imagen"""
+    st.markdown("""
+    <div class="app-header">
+        <div class="logo-container">
+            <span class="logo-icon">🏥</span>
+            <div>
+                <div class="logo-text">Restrepo</div>
+                <div class="logo-subtitle">Sistema de Gestión de Ventas</div>
+            </div>
+        </div>
+        <div class="logo-container">
+            <span class="badge-modern badge-info">AIS</span>
+            <span class="badge-modern badge-success">En línea</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+def create_modern_search_card():
+    """Crear tarjeta de búsqueda moderna como en la imagen de referencia"""
+    st.markdown("""
+    <div class="modern-card">
+        <h3 style="margin-bottom: 1.5rem; font-weight: 600; color: #1a1a2e;">🔍 Consultar Productos</h3>
+        <div class="search-grid">
+            <div class="search-field">
+                <label class="search-label">Código EAN o Código Material</label>
+                <input type="text" class="modern-input" placeholder="Ingresa el código del producto" id="codigo_producto">
+            </div>
+            <div class="search-field">
+                <label class="search-label">Nombre del producto</label>
+                <input type="text" class="modern-input" placeholder="Nombre del producto" id="nombre_producto">
+            </div>
+            <div class="search-field">
+                <label class="search-label">Tienda Física</label>
+                <select class="modern-input" id="tienda_fisica">
+                    <option value="">Seleccionar tienda</option>
+                    <option value="Restrepo">Restrepo</option>
+                    <option value="Centro">Centro</option>
+                    <option value="Norte">Norte</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                <button class="modern-btn" onclick="alert('Funcionalidad de búsqueda')">
+                    🔍 Consultar
+                </button>
+                <button class="modern-btn modern-btn-secondary" onclick="document.getElementById('codigo_producto').value=''; document.getElementById('nombre_producto').value='';">
+                    🧹 Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ============= MODIFICAR LA FUNCIÓN MAIN =============
+# Reemplaza la función main() con esta versión
+
+def main():
+    # Inicializar keep-alive
+    init_keep_alive()
+    
+    # Cargar CSS moderno
+    load_css()
+    
+    # Asegurar que el sidebar inicie cerrado
+    if 'sidebar_open' not in st.session_state:
+        st.session_state.sidebar_open = False
+    
+    if not st.session_state.user:
+        # Pantalla de login modernizada
+        show_modern_login()
+    else:
+        # Mostrar header moderno
+        create_modern_header()
+        
+        # Mostrar menú
+        show_modern_menu()
+        
+        # Contenido principal con padding
+        st.markdown('<div class="main-content">', unsafe_allow_html=True)
+        
+        # Mostrar tarjeta de búsqueda en páginas específicas
+        if st.session_state.page in ["Dashboard", "Registrar ventas"]:
+            create_modern_search_card()
+            st.markdown("<br>", unsafe_allow_html=True)
+        
+        pages = {
+            "Dashboard": page_dashboard,
+            "Ranking": page_ranking,
+            "Empleados": page_empleados,
+            "Usuarios": page_usuarios,
+            "Reportes": page_reportes,
+            "Backups": render_backup_page,
+            "Admin Afiliaciones": page_admin_afiliaciones,
+            "Registrar ventas": page_registrar_ventas,
+            "Registrar afiliaciones": page_registrar_afiliaciones,
+            "Mis afiliaciones": page_mis_afiliaciones,
+            "Mi desempeño": page_mi_desempeno,
+            "Mi perfil": page_mi_perfil
+        }
+        
+        if st.session_state.page in pages:
+            pages[st.session_state.page]()
+        else:
+            page_dashboard() if st.session_state.user["role"] == "admin" else page_registrar_ventas()
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Footer moderno
+        show_modern_footer()
+
+def show_modern_login():
+    """Pantalla de login moderna"""
+    st.markdown("""
+    <style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .login-card {
+        background: white;
+        border-radius: 32px;
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .login-icon {
+        font-size: 48px;
+        margin-bottom: 1rem;
+    }
+    .login-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 0.5rem;
+    }
+    .login-subtitle {
+        color: #6c757d;
+        font-size: 14px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="login-container">', unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        with st.container():
+            st.markdown("""
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-icon">🏥</div>
+                    <div class="login-title">Bienvenido</div>
+                    <div class="login-subtitle">Sistema de Ventas - Restrepo</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            u = st.text_input("Usuario", placeholder="Ingresa tu usuario", key="login_user")
+            p = st.text_input("Contraseña", type="password", placeholder="********", key="login_pass")
+            
+            col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+            with col_btn2:
+                if st.button("Ingresar", use_container_width=True, type="primary"):
+                    if u and p:
+                        user = authenticate(u, p)
+                        if user:
+                            st.session_state.user = user
+                            if user["role"] == "admin":
+                                st.session_state.page = "Dashboard"
+                            else:
+                                emp_info = get_employee_info(user["id"])
+                                if emp_info:
+                                    st.session_state.page = "Registrar ventas"
+                                else:
+                                    st.session_state.page = "Mi perfil"
+                            st.rerun()
+                        else:
+                            st.error("❌ Credenciales incorrectas")
+                    else:
+                        st.warning("⚠️ Completa todos los campos")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def show_modern_menu():
+    """Menú moderno simplificado"""
+    if 'sidebar_open' not in st.session_state:
+        st.session_state.sidebar_open = False
+    
+    # Botón hamburguesa
+    col1, col2, col3 = st.columns([1, 10, 1])
+    with col1:
+        if st.button("☰", key="hamburger_btn", help="Abrir menú"):
+            st.session_state.sidebar_open = not st.session_state.sidebar_open
+            st.rerun()
+    
+    if st.session_state.sidebar_open:
+        with st.sidebar:
+            # Cerrar menú
+            col_close1, col_close2 = st.columns([6, 1])
+            with col_close2:
+                if st.button("✕", key="close_sidebar", help="Cerrar menú"):
+                    st.session_state.sidebar_open = False
+                    st.rerun()
+            
+            st.markdown("---")
+            
+            # Información del usuario
+            emp_info = get_employee_info(st.session_state.user["id"])
+            if emp_info:
+                st.markdown(f"""
+                <div style="text-align: center; padding: 1rem;">
+                    <div style="font-size: 48px; margin-bottom: 0.5rem;">👤</div>
+                    <div style="font-weight: 600; font-size: 16px;">{emp_info[1]}</div>
+                    <div style="font-size: 12px; color: #6c757d;">{emp_info[2]}</div>
+                    <div style="font-size: 12px; color: #6c757d;">🎯 Meta: {emp_info[4]} uni</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("---")
+            
+            # Menú items
+            if st.session_state.user["role"] == "admin":
+                menu_items = [
+                    ("📊 Dashboard", "Dashboard"),
+                    ("🏆 Ranking", "Ranking"),
+                    ("🧑‍💼 Empleados", "Empleados"),
+                    ("👥 Usuarios", "Usuarios"),
+                    ("📊 Reportes", "Reportes"),
+                    ("📱 Afiliaciones", "Admin Afiliaciones"),
+                    ("💾 Backups", "Backups")
+                ]
+            else:
+                menu_items = [
+                    ("📝 Registrar ventas", "Registrar ventas"),
+                    ("📱 Registrar afiliaciones", "Registrar afiliaciones"),
+                    ("📊 Mis afiliaciones", "Mis afiliaciones"),
+                    ("📈 Mi Desempeño", "Mi desempeño"),
+                    ("👤 Mi perfil", "Mi perfil"),
+                    ("🏆 Ranking", "Ranking")
+                ]
+            
+            for label, page in menu_items:
+                if st.button(
+                    label,
+                    key=f"nav_{page}",
+                    use_container_width=True,
+                    type="primary" if st.session_state.page == page else "secondary"
+                ):
+                    st.session_state.page = page
+                    st.session_state.sidebar_open = False
+                    st.rerun()
+            
+            st.markdown("---")
+            
+            # Botón cerrar sesión
+            if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):
+                st.session_state.clear()
+                st.cache_data.clear()
+                st.rerun()
+
+def show_modern_footer():
+    """Footer moderno"""
+    from datetime import datetime
+    from dateutil import tz
+    
     try:
-        with open("styles.css") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        pass
-
-load_css()
-
-# Inicializar session state
-if "user" not in st.session_state:
-    st.session_state.user = None
-if "page" not in st.session_state:
-    st.session_state.page = "Dashboard" if st.session_state.user else "Login"
+        # Hora Colombia
+        ahora_utc = datetime.utcnow()
+        hora_colombia = ahora_utc - timedelta(hours=5)
+        fecha_hora = hora_colombia.strftime('%d/%m/%Y %H:%M')
+    except:
+        fecha_hora = datetime.now().strftime('%d/%m/%Y %H:%M')
+    
+    st.markdown(f"""
+    <div class="modern-footer">
+        <div>🏥 Locatel Restrepo | AIS | v2.0.0</div>
+        <div style="margin-top: 5px;">⏱️ {fecha_hora} (Colombia)</div>
+        <div style="margin-top: 5px;">Creado por Edwin Merchan</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ---------------- FUNCIONES DE UTILIDAD ---------------- #
 @st.cache_data(ttl=60)
