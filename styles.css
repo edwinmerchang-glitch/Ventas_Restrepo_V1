@@ -1,176 +1,504 @@
-.main {
-    background: linear-gradient(120deg, #f4f6ff, #eef2ff);
-    padding: 20px;
+/* ==================== ESTILOS MODERNOS LOCATEL AIS v3.0 ==================== */
+/* Variables globales */
+:root {
+    --primary: #4361ee;
+    --primary-dark: #3a56d4;
+    --primary-light: #eef2ff;
+    --secondary: #06b6d4;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --dark: #1e293b;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e1;
+    --gray-400: #94a3b8;
+    --gray-500: #64748b;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1e293b;
+    --gray-900: #0f172a;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
 }
 
+/* Reset y base */
+.stApp {
+    background: var(--gray-50);
+}
+
+/* Tipografía */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--gray-800);
+}
+
+/* Tarjetas modernas */
 .card {
     background: white;
-    padding: 25px;
-    border-radius: 18px;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.06);
-    margin-bottom: 20px;
-    transition: transform 0.2s;
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+    border: 1px solid var(--gray-100);
 }
 
 .card:hover {
+    box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
-    box-shadow: 0px 12px 25px rgba(0,0,0,0.1);
 }
 
-.metric {
-    font-size: 32px;
-    font-weight: 700;
-    color: #3b5bfd;
-    margin: 10px 0;
-}
-
-.progress {
-    height: 12px;
-    background: #e9ecef;
-    border-radius: 20px;
-    overflow: hidden;
-    margin: 10px 0;
-}
-
-.progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, #4f7cff, #7aa2ff);
-    transition: width 0.3s ease;
-}
-
-.badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
+.card-header {
+    font-size: 1.125rem;
     font-weight: 600;
-    margin: 2px;
+    margin-bottom: 1rem;
+    color: var(--gray-700);
+    border-left: 3px solid var(--primary);
+    padding-left: 0.75rem;
 }
 
-.badge-cargo {
-    background: #e3f2fd;
-    color: #1976d2;
+/* Badges modernos */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    letter-spacing: -0.01em;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    transition: all 0.2s ease;
+}
+
+.badge-cargo-drogueria {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.badge-cargo-equipos {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.badge-cargo-pasillos {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.badge-cargo-cajas {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
 }
 
 .badge-depto {
-    background: #e8f5e8;
-    color: #2e7d32;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border: 1px solid var(--gray-200);
 }
 
-.stButton > button {
-    width: 100%;
-    border-radius: 10px;
-    background: linear-gradient(90deg, #4f7cff, #7aa2ff);
+/* KPI Cards modernas */
+.kpi-card {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
     color: white;
-    font-weight: 600;
-    border: none;
-    padding: 10px;
-    transition: all 0.2s;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
 }
 
-.stButton > button:hover {
-    background: linear-gradient(90deg, #3b5bfd, #6b8aff);
-    box-shadow: 0 4px 10px rgba(75, 123, 255, 0.3);
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.kpi-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+    margin-bottom: 0.5rem;
+}
+
+.kpi-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.kpi-trend {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    opacity: 0.9;
+}
+
+.trend-up {
+    color: #4ade80;
+}
+
+.trend-down {
+    color: #f87171;
+}
+
+/* Métricas */
+.metric-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-100);
+    transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--gray-200);
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    line-height: 1.2;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.metric-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Progress bar moderna */
+.progress {
+    background: var(--gray-200);
+    border-radius: 1rem;
+    height: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    height: 100%;
+    border-radius: 1rem;
+    transition: width 0.5s ease;
+}
+
+/* Botones modernos */
+.stButton > button {
+    border-radius: var(--radius-lg);
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    padding: 0.5rem 1rem;
+}
+
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.stButton > button[kind="primary"]:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 .stButton > button[kind="secondary"] {
     background: white;
-    color: #4f7cff;
-    border: 1px solid #4f7cff;
+    border: 1px solid var(--gray-200);
+    color: var(--gray-700);
 }
 
 .stButton > button[kind="secondary"]:hover {
-    background: #f0f4ff;
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
 }
 
-/* Estilos para tabs */
+/* Inputs modernos */
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input,
+.stSelectbox > div > div > div {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    transition: all 0.2s ease;
+}
+
+.stTextInput > div > div > input:focus,
+.stNumberInput > div > div > input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+/* Tabs modernas */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 8px;
+    gap: 0.5rem;
+    background: white;
+    padding: 0.5rem;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1rem;
 }
 
 .stTabs [data-baseweb="tab"] {
-    border-radius: 8px 8px 0 0;
-    padding: 10px 20px;
-    background-color: white;
+    border-radius: var(--radius-lg);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background: var(--gray-100);
+}
+
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+}
+
+/* Expander moderno */
+.streamlit-expanderHeader {
+    border-radius: var(--radius-lg);
+    background: white;
+    border: 1px solid var(--gray-200);
+    font-weight: 500;
+}
+
+.streamlit-expanderHeader:hover {
+    background: var(--gray-50);
+}
+
+/* Alertas modernas */
+.stAlert {
+    border-radius: var(--radius-lg);
+    border: none;
+    background: white;
+    box-shadow: var(--shadow-sm);
+    padding: 1rem;
+}
+
+.stInfo {
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    border: none;
+    color: var(--gray-800);
+}
+
+.stSuccess {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    border: none;
+    color: var(--gray-800);
+}
+
+.stWarning {
+    background: linear-gradient(135deg, #fed7aa, #fdba74);
+    border: none;
+    color: var(--gray-800);
+}
+
+.stError {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    border: none;
+    color: var(--gray-800);
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--gray-400);
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state-title {
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--gray-500);
+}
+
+.empty-state-description {
+    font-size: 0.875rem;
+    color: var(--gray-400);
+}
+
+/* Sidebar moderno */
+[data-testid="stSidebar"] {
+    background: white;
+    border-right: 1px solid var(--gray-100);
+}
+
+/* Estilo para el indicador de keep-alive */
+.keep-alive-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 12px 15px;
+    margin: 20px 0 10px 0;
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.keep-alive-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.pulse-dot {
+    width: 10px;
+    height: 10px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+
+.keep-alive-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    background: rgba(255,255,255,0.15);
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-top: 5px;
+}
+
+.ping-badge {
+    background: rgba(255,255,255,0.25);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* Tarjeta de usuario */
+.user-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 20px 15px;
+    margin-bottom: 20px;
+    color: white;
+    text-align: center;
+}
+
+.user-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 10px 0 5px 0;
+}
+
+.user-badge {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 15px;
+    border-radius: 20px;
+    font-size: 13px;
+    display: inline-block;
+    margin: 2px;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.user-meta {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 10px;
+    font-size: 13px;
+    background: rgba(255,255,255,0.1);
+    padding: 8px;
+    border-radius: 10px;
 }
 
 /* Animaciones */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.css-1v0mbdj, .css-1r6slb0 {
+.fade-in {
     animation: fadeIn 0.3s ease-out;
 }
 
-/* Dashboard específico */
-.metric-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Botón hamburguesa */
+.hamburger-btn {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
-    padding: 20px;
-    border-radius: 15px;
-    margin: 10px 0;
+    border: none;
+    border-radius: 12px;
+    width: 45px;
+    height: 45px;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.hamburger-btn:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Overlay del menú */
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 998;
+    backdrop-filter: blur(3px);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .metric {
-        font-size: 24px;
+    .metric-value {
+        font-size: 1.5rem;
     }
     
     .card {
-        padding: 15px;
-    }
-}
-
-/* styles.css - Estilos adicionales para el menú hamburguesa */
-
-/* Animación suave para el sidebar */
-[data-testid="stSidebar"] {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-}
-
-/* Personalizar el botón de expandir nativo de Streamlit (opcional) */
-[data-testid="collapsedControl"] {
-    display: none !important; /* Oculta el botón nativo de Streamlit */
-}
-
-/* Ajustes responsive */
-@media (max-width: 768px) {
-    .hamburger-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 22px;
-        top: 15px;
-        left: 15px;
+        padding: 1rem;
     }
     
-    [data-testid="stSidebar"] {
-        width: 85% !important;
-        max-width: 320px !important;
+    .kpi-value {
+        font-size: 1.25rem;
     }
-}
-
-/* Scroll personalizado para el sidebar */
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-    max-height: 100vh;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #4f7cff #f0f0f0;
-}
-
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"]::-webkit-scrollbar {
-    width: 6px;
-}
-
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"]::-webkit-scrollbar-track {
-    background: #f0f0f0;
-    border-radius: 10px;
-}
-
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"]::-webkit-scrollbar-thumb {
-    background: #4f7cff;
-    border-radius: 10px;
 }
