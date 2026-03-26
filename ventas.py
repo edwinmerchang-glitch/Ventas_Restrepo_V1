@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from database import create_tables, get_connection, migrate_database, verify_database, DB_PATH
 from auth import authenticate, create_user, get_all_users
 import sqlite3
 import time
+# Al principio, con los otros import
 from keep_alive import init_keep_alive, render_keep_alive_status
 from backup_manager import render_backup_page
 
@@ -13,11 +14,11 @@ from backup_manager import render_backup_page
 st.set_page_config(
     "Ventas Equipo Locatel Restrepo", 
     layout="wide", 
-    page_icon="🏥",
+    page_icon="",
     initial_sidebar_state="collapsed"
 )
 
-# ============= INICIALIZACIÓN DE BASE DE DATOS =============
+# Verificar y crear base de datos al inicio
 with st.spinner("🔄 Inicializando sistema..."):
     try:
         create_tables()
@@ -42,6 +43,7 @@ def create_default_admin():
     except Exception as e:
         st.error(f"Error al crear admin por defecto: {e}")
 
+# Crear admin por defecto si es necesario
 create_default_admin()
 
 # ============= LISTAS PERSONALIZADAS =============
@@ -59,435 +61,23 @@ DEPARTAMENTOS = [
     "Cajas"
 ]
 
-# ============= ESTILOS CSS MODERNOS =============
 def load_css():
-    """Cargar estilos CSS modernos"""
-    st.markdown("""
-    <style>
-    /* Importar fuentes modernas */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
-    /* Reset y estilos base */
-    .stApp {
-        background: #f5f7fa;
-        font-family: 'Inter', sans-serif;
-    }
-    
-    /* Ocultar el header de Streamlit */
-    header[data-testid="stHeader"] {
-        background: transparent;
-        box-shadow: none;
-    }
-    
-    /* Estilo para el contenido principal */
-    .main-content {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-    
-    /* Tarjetas modernas */
-    .modern-card {
-        background: white;
-        border-radius: 24px;
-        padding: 2rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        margin-bottom: 2rem;
-    }
-    
-    .modern-card:hover {
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
-    }
-    
-    /* Header principal */
-    .app-header {
-        background: white;
-        padding: 1rem 2rem;
-        border-bottom: 1px solid #e9ecef;
-        margin-bottom: 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-    
-    .logo-container {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    
-    .logo-icon {
-        font-size: 32px;
-    }
-    
-    .logo-text {
-        font-size: 24px;
-        font-weight: 600;
-        color: #1a1a2e;
-        letter-spacing: -0.5px;
-    }
-    
-    .logo-subtitle {
-        font-size: 14px;
-        color: #6c757d;
-        margin-top: 2px;
-    }
-    
-    /* Campos de formulario modernos */
-    .modern-input {
-        width: 100%;
-        padding: 12px 16px;
-        border: 1px solid #e9ecef;
-        border-radius: 12px;
-        font-size: 14px;
-        transition: all 0.3s ease;
-        background: white;
-    }
-    
-    .modern-input:focus {
-        outline: none;
-        border-color: #4f7cff;
-        box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.1);
-    }
-    
-    /* Botones modernos */
-    .modern-btn {
-        background: #4f7cff;
-        color: white;
-        border: none;
-        padding: 12px 28px;
-        border-radius: 12px;
-        font-weight: 500;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .modern-btn:hover {
-        background: #3a5fd0;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(79, 124, 255, 0.3);
-    }
-    
-    .modern-btn-secondary {
-        background: white;
-        color: #4f7cff;
-        border: 1px solid #e9ecef;
-    }
-    
-    .modern-btn-secondary:hover {
-        background: #f8f9fa;
-        border-color: #4f7cff;
-    }
-    
-    /* Grid de búsqueda */
-    .search-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-    
-    .search-field {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .search-label {
-        font-size: 14px;
-        font-weight: 500;
-        color: #495057;
-    }
-    
-    /* Badges y etiquetas */
-    .badge-modern {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    
-    .badge-success {
-        background: #d4edda;
-        color: #155724;
-    }
-    
-    .badge-warning {
-        background: #fff3cd;
-        color: #856404;
-    }
-    
-    .badge-info {
-        background: #e7f1ff;
-        color: #004085;
-    }
-    
-    /* Footer moderno */
-    .modern-footer {
-        background: white;
-        border-top: 1px solid #e9ecef;
-        padding: 1rem 2rem;
-        margin-top: 3rem;
-        text-align: center;
-        font-size: 13px;
-        color: #6c757d;
-    }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-        .search-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .app-header {
-            flex-direction: column;
-            text-align: center;
-            gap: 1rem;
-        }
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# ============= COMPONENTES MODERNOS =============
-def create_modern_header():
-    """Crear header moderno"""
-    st.markdown("""
-    <div class="app-header">
-        <div class="logo-container">
-            <span class="logo-icon">🏥</span>
-            <div>
-                <div class="logo-text">Restrepo</div>
-                <div class="logo-subtitle">Sistema de Gestión de Ventas</div>
-            </div>
-        </div>
-        <div class="logo-container">
-            <span class="badge-modern badge-info">AIS</span>
-            <span class="badge-modern badge-success">En línea</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-def create_modern_search_card():
-    """Crear tarjeta de búsqueda moderna"""
-    st.markdown("""
-    <div class="modern-card">
-        <h3 style="margin-bottom: 1.5rem; font-weight: 600; color: #1a1a2e;">🔍 Consultar Productos</h3>
-        <div class="search-grid">
-            <div class="search-field">
-                <label class="search-label">Código EAN o Código Material</label>
-                <input type="text" class="modern-input" placeholder="Ingresa el código del producto" id="codigo_producto">
-            </div>
-            <div class="search-field">
-                <label class="search-label">Nombre del producto</label>
-                <input type="text" class="modern-input" placeholder="Nombre del producto" id="nombre_producto">
-            </div>
-            <div class="search-field">
-                <label class="search-label">Tienda Física</label>
-                <select class="modern-input" id="tienda_fisica">
-                    <option value="">Seleccionar tienda</option>
-                    <option value="Restrepo">Restrepo</option>
-                    <option value="Centro">Centro</option>
-                    <option value="Norte">Norte</option>
-                </select>
-            </div>
-            <div style="display: flex; gap: 1rem; align-items: flex-end;">
-                <button class="modern-btn" onclick="alert('Funcionalidad en desarrollo')">
-                    🔍 Consultar
-                </button>
-                <button class="modern-btn modern-btn-secondary" onclick="document.getElementById('codigo_producto').value=''; document.getElementById('nombre_producto').value='';">
-                    🧹 Limpiar
-                </button>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-def show_modern_login():
-    """Pantalla de login moderna"""
-    st.markdown("""
-    <style>
-    .login-container {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    .login-card {
-        background: white;
-        border-radius: 32px;
-        padding: 2.5rem;
-        width: 100%;
-        max-width: 400px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    }
-    .login-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .login-icon {
-        font-size: 48px;
-        margin-bottom: 1rem;
-    }
-    .login-title {
-        font-size: 28px;
-        font-weight: 600;
-        color: #1a1a2e;
-        margin-bottom: 0.5rem;
-    }
-    .login-subtitle {
-        color: #6c757d;
-        font-size: 14px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('<div class="login-container">', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        with st.container():
-            st.markdown("""
-            <div class="login-card">
-                <div class="login-header">
-                    <div class="login-icon">🏥</div>
-                    <div class="login-title">Bienvenido</div>
-                    <div class="login-subtitle">Sistema de Ventas - Restrepo</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            u = st.text_input("Usuario", placeholder="Ingresa tu usuario", key="login_user")
-            p = st.text_input("Contraseña", type="password", placeholder="********", key="login_pass")
-            
-            col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
-            with col_btn2:
-                if st.button("Ingresar", use_container_width=True, type="primary"):
-                    if u and p:
-                        user = authenticate(u, p)
-                        if user:
-                            st.session_state.user = user
-                            if user["role"] == "admin":
-                                st.session_state.page = "Dashboard"
-                            else:
-                                emp_info = get_employee_info(user["id"])
-                                if emp_info:
-                                    st.session_state.page = "Registrar ventas"
-                                else:
-                                    st.session_state.page = "Mi perfil"
-                            st.rerun()
-                        else:
-                            st.error("❌ Credenciales incorrectas")
-                    else:
-                        st.warning("⚠️ Completa todos los campos")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def show_modern_menu():
-    """Menú moderno simplificado"""
-    if 'sidebar_open' not in st.session_state:
-        st.session_state.sidebar_open = False
-    
-    # Botón hamburguesa
-    col1, col2, col3 = st.columns([1, 10, 1])
-    with col1:
-        if st.button("☰", key="hamburger_btn", help="Abrir menú"):
-            st.session_state.sidebar_open = not st.session_state.sidebar_open
-            st.rerun()
-    
-    if st.session_state.sidebar_open:
-        with st.sidebar:
-            # Cerrar menú
-            col_close1, col_close2 = st.columns([6, 1])
-            with col_close2:
-                if st.button("✕", key="close_sidebar", help="Cerrar menú"):
-                    st.session_state.sidebar_open = False
-                    st.rerun()
-            
-            st.markdown("---")
-            
-            # Información del usuario
-            emp_info = get_employee_info(st.session_state.user["id"])
-            if emp_info:
-                st.markdown(f"""
-                <div style="text-align: center; padding: 1rem;">
-                    <div style="font-size: 48px; margin-bottom: 0.5rem;">👤</div>
-                    <div style="font-weight: 600; font-size: 16px;">{emp_info[1]}</div>
-                    <div style="font-size: 12px; color: #6c757d;">{emp_info[2]}</div>
-                    <div style="font-size: 12px; color: #6c757d;">🎯 Meta: {emp_info[4]} uni</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            st.markdown("---")
-            
-            # Menú items
-            if st.session_state.user["role"] == "admin":
-                menu_items = [
-                    ("📊 Dashboard", "Dashboard"),
-                    ("🏆 Ranking", "Ranking"),
-                    ("🧑‍💼 Empleados", "Empleados"),
-                    ("👥 Usuarios", "Usuarios"),
-                    ("📊 Reportes", "Reportes"),
-                    ("📱 Afiliaciones", "Admin Afiliaciones"),
-                    ("💾 Backups", "Backups")
-                ]
-            else:
-                menu_items = [
-                    ("📝 Registrar ventas", "Registrar ventas"),
-                    ("📱 Registrar afiliaciones", "Registrar afiliaciones"),
-                    ("📊 Mis afiliaciones", "Mis afiliaciones"),
-                    ("📈 Mi Desempeño", "Mi desempeño"),
-                    ("👤 Mi perfil", "Mi perfil"),
-                    ("🏆 Ranking", "Ranking")
-                ]
-            
-            for label, page in menu_items:
-                if st.button(
-                    label,
-                    key=f"nav_{page}",
-                    use_container_width=True,
-                    type="primary" if st.session_state.page == page else "secondary"
-                ):
-                    st.session_state.page = page
-                    st.session_state.sidebar_open = False
-                    st.rerun()
-            
-            st.markdown("---")
-            
-            # Botón cerrar sesión
-            if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):
-                st.session_state.clear()
-                st.cache_data.clear()
-                st.rerun()
-
-def show_modern_footer():
-    """Footer moderno"""
+    """Cargar estilos CSS"""
     try:
-        ahora_utc = datetime.utcnow()
-        hora_colombia = ahora_utc - timedelta(hours=5)
-        fecha_hora = hora_colombia.strftime('%d/%m/%Y %H:%M')
-    except:
-        fecha_hora = datetime.now().strftime('%d/%m/%Y %H:%M')
-    
-    st.markdown(f"""
-    <div class="modern-footer">
-        <div>🏥 Locatel Restrepo | AIS | v2.0.0</div>
-        <div style="margin-top: 5px;">⏱️ {fecha_hora} (Colombia)</div>
-        <div style="margin-top: 5px;">Creado por Edwin Merchan</div>
-    </div>
-    """, unsafe_allow_html=True)
+        with open("styles.css") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    except FileNotFoundError:
+        pass
 
-# ============= FUNCIONES DE UTILIDAD =============
+load_css()
+
+# Inicializar session state
+if "user" not in st.session_state:
+    st.session_state.user = None
+if "page" not in st.session_state:
+    st.session_state.page = "Dashboard" if st.session_state.user else "Login"
+
+# ---------------- FUNCIONES DE UTILIDAD ---------------- #
 @st.cache_data(ttl=60)
 def safe_dataframe(query, params=None):
     """Ejecutar query de forma segura y retornar DataFrame con cache"""
@@ -574,17 +164,21 @@ def get_badge_class(position):
         return "badge-cargo-drogueria"
 
 # ============= FUNCIONES DE AFILIACIONES =============
+# Copia y pega todo esto después de las funciones existentes
+
 def get_afiliaciones_info(employee_id, fecha=None):
     """Obtener información de afiliaciones para un empleado"""
     if fecha is None:
         fecha = date.today()
     
+    # Obtener afiliaciones del día
     result = execute_query(
         "SELECT cantidad FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
         (employee_id, str(fecha))
     )
     afiliaciones_hoy = result[0][0] if result else 0
     
+    # Obtener afiliaciones del mes
     mes_actual = fecha.strftime("%Y-%m")
     result_mes = execute_query(
         "SELECT SUM(cantidad) FROM afiliaciones WHERE employee_id = ? AND fecha LIKE ?",
@@ -594,7 +188,35 @@ def get_afiliaciones_info(employee_id, fecha=None):
     
     return afiliaciones_hoy, afiliaciones_mes
 
-# ============= PÁGINAS DE AFILIACIONES =============
+def registrar_afiliacion(employee_id, cantidad, fecha=None):
+    """Registrar una afiliación para un empleado"""
+    if fecha is None:
+        fecha = date.today()
+    
+    # Verificar si ya existe registro para hoy
+    existe = execute_query(
+        "SELECT id, cantidad FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
+        (employee_id, str(fecha))
+    )
+    
+    if existe:
+        # Actualizar registro existente
+        nueva_cantidad = existe[0][1] + cantidad
+        success = execute_insert(
+            "UPDATE afiliaciones SET cantidad = ? WHERE employee_id = ? AND fecha = ?",
+            (nueva_cantidad, employee_id, str(fecha))
+        )
+    else:
+        # Crear nuevo registro
+        success = execute_insert(
+            "INSERT INTO afiliaciones (employee_id, fecha, cantidad) VALUES (?, ?, ?)",
+            (employee_id, str(fecha), cantidad)
+        )
+    
+    return success
+
+# ============= NUEVAS PÁGINAS DE AFILIACIONES =============
+
 def page_registrar_afiliaciones():
     """Página para que los empleados registren sus afiliaciones"""
     st.title("📱 Registro de Afiliaciones - AIS")
@@ -606,27 +228,32 @@ def page_registrar_afiliaciones():
         return
     
     badge_class = get_badge_class(emp_info[2])
+    
+    # Obtener meta de afiliaciones (por defecto 50 si no existe)
     meta_afiliaciones = emp_info[5] if len(emp_info) > 5 and emp_info[5] else 50
     
     st.markdown(f"""
-    <div style="background: white; border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <div class="card">
         <h4>Registrando para: {emp_info[1]}</h4>
         <p>
-            <span style="background: #e7f1ff; padding: 4px 12px; border-radius: 20px;">{emp_info[2]}</span>
-            <span style="background: #e7f1ff; padding: 4px 12px; border-radius: 20px; margin-left: 8px;">{emp_info[3]}</span>
+            <span class="badge {badge_class}">{emp_info[2]}</span>
+            <span class="badge badge-depto">{emp_info[3]}</span>
             🎯 Meta mensual de afiliaciones: {meta_afiliaciones}
         </p>
     </div>
     """, unsafe_allow_html=True)
     
+    # Selector de fecha (no puede ser futura)
     col_fecha1, col_fecha2 = st.columns([2, 2])
     with col_fecha1:
         fecha_registro = st.date_input(
             "📅 Fecha del registro",
             value=date.today(),
-            max_value=date.today()
+            max_value=date.today(),
+            help="Selecciona la fecha de las afiliaciones (no puede ser futura)"
         )
     
+    # Verificar si ya existe registro para la fecha seleccionada
     result = execute_query(
         "SELECT COUNT(*) FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
         (emp_info[0], str(fecha_registro))
@@ -634,34 +261,139 @@ def page_registrar_afiliaciones():
     ya_registro = result[0][0] > 0 if result else False
     
     if ya_registro:
-        st.warning(f"⚠️ Ya hay afiliaciones registradas para el {fecha_registro.strftime('%d/%m/%Y')}. Puedes agregar más.")
+        if fecha_registro == date.today():
+            st.warning("⚠️ Ya has registrado afiliaciones hoy. Puedes agregar más.")
+        else:
+            st.warning(f"⚠️ Ya hay afiliaciones registradas para el {fecha_registro.strftime('%d/%m/%Y')}. Puedes agregar más.")
     
     with st.form("afiliaciones_form"):
-        cantidad = st.number_input("Cantidad de afiliaciones realizadas", min_value=0, step=1, value=1)
+        st.subheader(f"Ingresa las afiliaciones del {fecha_registro.strftime('%d/%m/%Y')}")
         
-        submitted = st.form_submit_button("💾 Registrar afiliaciones", use_container_width=True, type="primary")
+        cantidad = st.number_input(
+            "Cantidad de afiliaciones realizadas",
+            min_value=0,
+            step=1,
+            value=1,
+            help="Ingresa el número de afiliaciones que realizaste"
+        )
+        
+        # Obtener afiliaciones del mes (basado en la fecha seleccionada)
+        mes_actual = fecha_registro.strftime("%Y-%m")
+        result_mes = execute_query(
+            "SELECT SUM(cantidad) FROM afiliaciones WHERE employee_id = ? AND fecha LIKE ?",
+            (emp_info[0], f"{mes_actual}%")
+        )
+        afiliaciones_mes = result_mes[0][0] or 0 if result_mes else 0
+        
+        # Si estamos editando un día existente, restar las afiliaciones de ese día para no contar doble
+        if ya_registro:
+            afiliaciones_dia_existentes = execute_query(
+                "SELECT cantidad FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
+                (emp_info[0], str(fecha_registro))
+            )
+            if afiliaciones_dia_existentes:
+                cantidad_existente = afiliaciones_dia_existentes[0][0]
+                afiliaciones_mes_ajustadas = afiliaciones_mes - cantidad_existente + cantidad
+            else:
+                afiliaciones_mes_ajustadas = afiliaciones_mes + cantidad
+        else:
+            afiliaciones_mes_ajustadas = afiliaciones_mes + cantidad
+        
+        progreso_mes = (afiliaciones_mes_ajustadas / meta_afiliaciones * 100) if meta_afiliaciones > 0 else 0
+        
+        st.markdown(f"""
+        <div style="margin: 20px 0;">
+            <p><strong>Total del día:</strong> {cantidad} afiliaciones</p>
+            <p><strong>Progreso mensual:</strong> {afiliaciones_mes_ajustadas} / {meta_afiliaciones} ({progreso_mes:.1f}%)</p>
+            <div class="progress">
+                <div class="progress-bar" style="width: {min(progreso_mes, 100)}%;"></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+        with col_btn2:
+            submitted = st.form_submit_button("💾 Registrar afiliaciones", use_container_width=True, type="primary")
         
         if submitted:
             if cantidad > 0:
                 if ya_registro:
+                    # Actualizar registro existente
                     success = execute_insert(
                         "UPDATE afiliaciones SET cantidad = ? WHERE employee_id = ? AND fecha = ?",
                         (cantidad, emp_info[0], str(fecha_registro))
                     )
+                    
+                    if success:
+                        st.success(f"✅ Afiliaciones actualizadas exitosamente para el {fecha_registro.strftime('%d/%m/%Y')}!")
+                        st.balloons()
+                        st.cache_data.clear()
+                        time.sleep(1)
+                        st.rerun()
                 else:
+                    # Crear nuevo registro
                     success = execute_insert(
                         "INSERT INTO afiliaciones (employee_id, fecha, cantidad) VALUES (?, ?, ?)",
                         (emp_info[0], str(fecha_registro), cantidad)
                     )
-                
-                if success:
-                    st.success(f"✅ {cantidad} afiliación(es) registrada(s) exitosamente!")
-                    st.balloons()
-                    st.cache_data.clear()
-                    time.sleep(1)
-                    st.rerun()
+                    
+                    if success:
+                        st.success(f"✅ {cantidad} afiliación(es) registrada(s) exitosamente para el {fecha_registro.strftime('%d/%m/%Y')}!")
+                        st.balloons()
+                        st.cache_data.clear()
+                        time.sleep(1)
+                        st.rerun()
             else:
                 st.warning("⚠️ Debes ingresar al menos una afiliación")
+    
+    # Mostrar historial reciente
+    st.divider()
+    st.subheader("📋 Historial de afiliaciones recientes")
+    
+    df_historial = safe_dataframe("""
+        SELECT 
+            fecha as Fecha,
+            cantidad as Afiliaciones
+        FROM afiliaciones 
+        WHERE employee_id = ? 
+        ORDER BY fecha DESC 
+        LIMIT 10
+    """, (emp_info[0],))
+    
+    if not df_historial.empty:
+        df_historial['Fecha'] = pd.to_datetime(df_historial['Fecha']).dt.strftime('%d/%m/%Y')
+        st.dataframe(df_historial, use_container_width=True, hide_index=True)
+        
+        # Opción para editar registros anteriores
+        with st.expander("✏️ Editar registro de otro día"):
+            fechas_anteriores = execute_query("""
+                SELECT DISTINCT fecha 
+                FROM afiliaciones 
+                WHERE employee_id = ? AND fecha < ?
+                ORDER BY fecha DESC
+            """, (emp_info[0], date.today()))
+            
+            if fechas_anteriores:
+                fechas_opciones = [fecha[0] for fecha in fechas_anteriores]
+                fecha_seleccionada = st.selectbox(
+                    "Selecciona una fecha para editar",
+                    options=fechas_opciones,
+                    format_func=lambda x: datetime.strptime(x, '%Y-%m-%d').strftime('%d/%m/%Y')
+                )
+                
+                if st.button("📝 Cargar registro para editar", use_container_width=True):
+                    # Cargar los datos de esa fecha
+                    datos = execute_query(
+                        "SELECT cantidad FROM afiliaciones WHERE employee_id = ? AND fecha = ?",
+                        (emp_info[0], fecha_seleccionada)
+                    )
+                    
+                    if datos:
+                        st.session_state['editar_fecha_afiliacion'] = fecha_seleccionada
+                        st.session_state['editar_cantidad'] = datos[0][0]
+                        st.rerun()
+    else:
+        st.info("No hay afiliaciones registradas aún")
 
 def page_mis_afiliaciones():
     """Página para que los empleados vean su historial de afiliaciones"""
@@ -673,19 +405,35 @@ def page_mis_afiliaciones():
         st.error("❌ No tienes un empleado asociado")
         return
     
-    periodo = st.selectbox("Período", ["Este mes", "Este trimestre", "Este año", "Todo"])
+    meta_afiliaciones = emp_info[5] if len(emp_info) > 5 else 50
     
+    # Selector de período
+    periodo = st.selectbox(
+        "Período",
+        ["Esta semana", "Este mes", "Este trimestre", "Este año", "Todo"],
+        key="afiliaciones_periodo"
+    )
+    
+    if st.button("🔄 Actualizar", key="actualizar_afiliaciones"):
+        st.cache_data.clear()
+        st.rerun()
+    
+    # Calcular fechas según período
     hoy = date.today()
-    if periodo == "Este mes":
+    if periodo == "Esta semana":
+        fecha_inicio = hoy - pd.Timedelta(days=hoy.weekday())
+    elif periodo == "Este mes":
         fecha_inicio = hoy.replace(day=1)
     elif periodo == "Este trimestre":
         mes_actual = hoy.month
-        fecha_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
+        trimestre_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
+        fecha_inicio = trimestre_inicio
     elif periodo == "Este año":
         fecha_inicio = hoy.replace(month=1, day=1)
     else:
         fecha_inicio = date(2000, 1, 1)
     
+    # Obtener datos
     df = safe_dataframe("""
         SELECT fecha, cantidad
         FROM afiliaciones 
@@ -699,26 +447,49 @@ def page_mis_afiliaciones():
     
     df["fecha"] = pd.to_datetime(df["fecha"])
     
+    # Métricas
     total_periodo = int(df["cantidad"].sum())
+    promedio = int(df["cantidad"].mean())
+    mejor_dia = int(df["cantidad"].max())
+    progreso_meta = (total_periodo / meta_afiliaciones * 100) if meta_afiliaciones > 0 else 0
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Total período", f"{total_periodo:,}")
     with col2:
-        st.metric("Promedio diario", f"{int(df['cantidad'].mean()):,}")
+        st.metric("Promedio diario", f"{promedio:,}")
     with col3:
-        st.metric("Mejor día", f"{int(df['cantidad'].max()):,}")
+        st.metric("Mejor día", f"{mejor_dia:,}")
+    with col4:
+        st.metric("Progreso meta", f"{progreso_meta:.1f}%")
     
-    fig = px.line(df, x="fecha", y="cantidad", title=f"📈 Evolución de afiliaciones - {periodo}", markers=True)
+    # Gráfico de evolución
+    fig = px.line(df, x="fecha", y="cantidad", 
+                 title=f"📈 Evolución de afiliaciones - {periodo}",
+                 markers=True)
     st.plotly_chart(fig, use_container_width=True)
+    
+    # Tabla de registros
+    st.subheader("📋 Historial de registros")
+    df_display = df.copy()
+    df_display["fecha"] = df_display["fecha"].dt.strftime("%d/%m/%Y")
+    df_display.columns = ["Fecha", "Cantidad"]
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
 
 def page_admin_afiliaciones():
     """Página para que el admin gestione las metas de afiliaciones"""
     st.title("⚙️ Configuración de Afiliaciones")
     
-    tab1, tab2 = st.tabs(["🎯 Metas por empleado", "📊 Ranking de afiliaciones"])
+    tab1, tab2, tab3 = st.tabs([
+        "🎯 Metas por empleado",
+        "📊 Ranking de afiliaciones",
+        "📈 Reporte general"
+    ])
     
     with tab1:
+        st.subheader("Configurar metas mensuales de afiliaciones")
+        
+        # Obtener todos los empleados
         empleados = execute_query("""
             SELECT id, name, department, position, meta_afiliaciones
             FROM employees
@@ -728,6 +499,13 @@ def page_admin_afiliaciones():
         if not empleados:
             st.info("No hay empleados registrados")
         else:
+            # Mostrar en tabla editable
+            st.markdown("""
+            <div class="card">
+                <p>💡 Puedes ajustar la meta mensual de afiliaciones para cada empleado.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
             for emp in empleados:
                 with st.expander(f"{emp[1]} - {emp[2]} ({emp[3]})"):
                     col1, col2 = st.columns([3, 1])
@@ -752,119 +530,539 @@ def page_admin_afiliaciones():
                                 st.rerun()
     
     with tab2:
-        df = safe_dataframe("""
+        st.subheader("🏆 Ranking de Afiliaciones")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            periodo = st.selectbox(
+                "Período",
+                ["Este mes", "Este trimestre", "Este año", "Todo"],
+                key="ranking_periodo"
+            )
+        with col2:
+            depto_filtro = st.selectbox(
+                "Departamento",
+                ["Todos"] + DEPARTAMENTOS,
+                key="depto_filtro"
+            )
+        
+        # Calcular fecha inicio según período
+        hoy = date.today()
+        if periodo == "Este mes":
+            fecha_inicio = hoy.replace(day=1)
+        elif periodo == "Este trimestre":
+            mes_actual = hoy.month
+            trimestre_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
+            fecha_inicio = trimestre_inicio
+        elif periodo == "Este año":
+            fecha_inicio = hoy.replace(month=1, day=1)
+        else:
+            fecha_inicio = date(2000, 1, 1)
+        
+        # Query para ranking
+        query = """
             SELECT 
                 e.name as Empleado,
                 e.department as Departamento,
+                e.position as Cargo,
                 COALESCE(SUM(a.cantidad), 0) as Total,
+                COUNT(DISTINCT a.fecha) as Dias_con_afiliaciones,
                 e.meta_afiliaciones as Meta
             FROM employees e
-            LEFT JOIN afiliaciones a ON e.id = a.employee_id
-            GROUP BY e.id
-            ORDER BY Total DESC
-        """)
+            LEFT JOIN afiliaciones a ON e.id = a.employee_id AND a.fecha >= ?
+            WHERE 1=1
+        """
+        params = [fecha_inicio]
         
-        if not df.empty:
+        if depto_filtro != "Todos":
+            query += " AND e.department = ?"
+            params.append(depto_filtro)
+        
+        query += " GROUP BY e.id ORDER BY Total DESC"
+        
+        df = safe_dataframe(query, params)
+        
+        if df.empty:
+            st.info("No hay datos de afiliaciones para mostrar")
+        else:
             df['Cumplimiento'] = (df['Total'] / df['Meta'] * 100).round(1)
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            
+            df_display = df.copy()
+            df_display["Posición"] = range(1, len(df) + 1)
+            df_display["Total"] = df_display["Total"].apply(lambda x: f"{int(x):,}")
+            df_display["Cumplimiento"] = df_display["Cumplimiento"].apply(lambda x: f"{x}%")
+            
+            st.dataframe(
+                df_display[["Posición", "Empleado", "Departamento", "Cargo", "Total", "Dias_con_afiliaciones", "Cumplimiento"]],
+                use_container_width=True,
+                hide_index=True
+            )
+            
+            # Gráfico de barras
+            fig = px.bar(df, x="Empleado", y="Total", color="Departamento",
+                        title="Afiliaciones por empleado",
+                        labels={"Total": "Total de afiliaciones"})
+            st.plotly_chart(fig, use_container_width=True)
+    
+    with tab3:
+        st.subheader("📈 Reporte general de afiliaciones")
+        
+        # Selector de fechas
+        col1, col2 = st.columns(2)
+        with col1:
+            fecha_inicio = st.date_input("Fecha inicio", value=date.today().replace(day=1))
+        with col2:
+            fecha_fin = st.date_input("Fecha fin", value=date.today())
+        
+        # Datos generales
+        df_general = safe_dataframe("""
+            SELECT 
+                a.fecha,
+                e.department,
+                e.name as empleado,
+                a.cantidad
+            FROM afiliaciones a
+            JOIN employees e ON a.employee_id = e.id
+            WHERE a.fecha BETWEEN ? AND ?
+            ORDER BY a.fecha DESC
+        """, (fecha_inicio, fecha_fin))
+        
+        if df_general.empty:
+            st.info("No hay registros en el período seleccionado")
+        else:
+            # Métricas generales
+            total_afiliaciones = df_general["cantidad"].sum()
+            promedio_diario = df_general.groupby("fecha")["cantidad"].sum().mean()
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total afiliaciones", f"{int(total_afiliaciones):,}")
+            with col2:
+                st.metric("Promedio diario", f"{int(promedio_diario):,}")
+            with col3:
+                st.metric("Días con registros", len(df_general["fecha"].unique()))
+            
+            # Gráfico por departamento
+            depto_df = df_general.groupby("department")["cantidad"].sum().reset_index()
+            fig_depto = px.pie(depto_df, values="cantidad", names="department",
+                              title="Distribución por departamento")
+            st.plotly_chart(fig_depto, use_container_width=True)
+            
+            # Evolución diaria
+            diario_df = df_general.groupby("fecha")["cantidad"].sum().reset_index()
+            fig_evol = px.line(diario_df, x="fecha", y="cantidad",
+                              title="Evolución diaria de afiliaciones",
+                              markers=True)
+            st.plotly_chart(fig_evol, use_container_width=True)
+            
+            # Tabla detallada
+            st.subheader("📋 Detalle de registros")
+            st.dataframe(df_general, use_container_width=True, hide_index=True)
 
-# ============= PÁGINAS DE VENTAS =============
-def page_dashboard():
-    st.title("📊 Dashboard de ventas")
+# ---------------- LOGIN ---------------- #
+def show_login():
+    """Mostrar pantalla de login"""
     
-    col1, col2 = st.columns(2)
-    with col1:
-        fecha_inicio = st.date_input("Fecha inicio", value=date.today().replace(day=1))
+    st.markdown("""
+    <div style="text-align: center; margin: 30px 0 40px 0;">
+        <h1 style="color: #4f7cff; font-size: 42px; margin-bottom: 5px;">
+            🏥 Ventas Equipo Locatel Restrepo
+        </h1>
+        <p style="color: #666; font-size: 16px;">Sistema de Gestión de Ventas</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        fecha_fin = st.date_input("Fecha fin", value=date.today())
-    
-    query = """
-        SELECT s.*, e.name, e.position, e.department 
-        FROM sales s
-        JOIN employees e ON s.employee_id = e.id
-        WHERE date BETWEEN ? AND ?
-        ORDER BY date DESC
-    """
-    
-    with st.spinner("Cargando datos..."):
-        df = safe_dataframe(query, (fecha_inicio, fecha_fin))
-    
-    if df.empty:
-        st.info("ℹ️ No hay ventas en el período seleccionado")
-        return
-    
-    df["total"] = df[['autoliquidable','oferta','marca','adicional']].sum(axis=1)
-    df["date"] = pd.to_datetime(df["date"])
-    
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Total Unidades", f"{int(df['total'].sum()):,}")
-    with col2:
-        st.metric("Autoliquidable", f"{int(df['autoliquidable'].sum()):,}")
-    with col3:
-        st.metric("Oferta Semana", f"{int(df['oferta'].sum()):,}")
-    with col4:
-        st.metric("Marca Propia", f"{int(df['marca'].sum()):,}")
-    
-    fig = px.bar(df, x="date", y="total", color="department", title="Ventas diarias por departamento")
-    st.plotly_chart(fig, use_container_width=True)
+        with st.container():
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader("🔐 Iniciar Sesión")
+            
+            u = st.text_input("Usuario", placeholder="Ingresa tu usuario")
+            p = st.text_input("Contraseña", type="password", placeholder="********")
+            
+            if st.button("Ingresar", use_container_width=True, type="primary"):
+                if u and p:
+                    user = authenticate(u, p)
+                    if user:
+                        st.session_state.user = user
+                        if user["role"] == "admin":
+                            st.session_state.page = "Dashboard"
+                        else:
+                            emp_info = get_employee_info(user["id"])
+                            if emp_info:
+                                st.session_state.page = "Registrar ventas"
+                            else:
+                                st.warning("⚠️ Completa tu perfil de empleado antes de continuar")
+                                st.session_state.page = "Mi perfil"
+                        st.rerun()
+                    else:
+                        st.error("❌ Credenciales incorrectas")
+                else:
+                    st.warning("⚠️ Completa todos los campos")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
-def page_ranking():
-    st.title("🏆 Ranking de Ventas")
+# ---------------- MENÚ CON HAMBURGUESA ---------------- #
+def show_menu():
+    """Mostrar menú con botón hamburguesa que inicia cerrado"""
     
-    col1, col2 = st.columns(2)
+    # CSS para el menú hamburguesa
+    st.markdown("""
+    <style>
+    /* Botón hamburguesa flotante */
+    .hamburger-btn-container {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1000;
+    }
+    
+    .hamburger-btn {
+        background: #4f7cff;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        width: 45px;
+        height: 45px;
+        font-size: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(79, 124, 255, 0.4);
+        transition: all 0.3s ease;
+    }
+    
+    .hamburger-btn:hover {
+        background: #3a5fd0;
+        transform: scale(1.1);
+    }
+    
+    /* Overlay cuando el menú está abierto */
+    .menu-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 998;
+        backdrop-filter: blur(3px);
+    }
+    
+    /* Estilo del sidebar */
+    [data-testid="stSidebar"] {
+        transition: transform 0.3s ease-in-out;
+        background: white;
+        box-shadow: 2px 0 20px rgba(0,0,0,0.1);
+    }
+    
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        transform: translateX(0) !important;
+    }
+    
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        transform: translateX(-100%) !important;
+    }
+    
+    /* Ocultar botón nativo de Streamlit */
+    [data-testid="collapsedControl"] {
+        display: none !important;
+    }
+    
+    /* Contenedor del sidebar */
+    .sidebar-content {
+        padding: 20px 15px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+    
+    /* Botón de cerrar en el sidebar */
+    .sidebar-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #666;
+        cursor: pointer;
+        z-index: 1001;
+    }
+    
+    .sidebar-close:hover {
+        color: #ff4b4b;
+    }
+    
+    /* Estilo para el indicador de keep-alive */
+    .keep-alive-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 12px 15px;
+        margin: 20px 0 10px 0;
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .keep-alive-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+    
+    .pulse-dot {
+        width: 10px;
+        height: 10px;
+        background: #4ade80;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    }
+    
+    .keep-alive-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        background: rgba(255,255,255,0.15);
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-top: 5px;
+    }
+    
+    .ping-badge {
+        background: rgba(255,255,255,0.25);
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    /* Botones del menú */
+    .stButton button {
+        font-weight: 500;
+        border-radius: 10px;
+        padding: 10px 15px;
+        transition: all 0.3s ease;
+        margin: 3px 0;
+    }
+    
+    .stButton button[kind="primary"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+    }
+    
+    .stButton button[kind="secondary"] {
+        background: white;
+        border: 1px solid #e0e0e0;
+        color: #333;
+    }
+    
+    .stButton button[kind="secondary"]:hover {
+        background: #f5f5f5;
+        border-color: #4f7cff;
+    }
+    
+    /* Tarjeta de usuario */
+    .user-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 20px 15px;
+        margin-bottom: 20px;
+        color: white;
+        text-align: center;
+    }
+    
+    .user-name {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 10px 0 5px 0;
+    }
+    
+    .user-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 4px 15px;
+        border-radius: 20px;
+        font-size: 13px;
+        display: inline-block;
+        margin: 2px;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .user-meta {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 10px;
+        font-size: 13px;
+        background: rgba(255,255,255,0.1);
+        padding: 8px;
+        border-radius: 10px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Botón hamburguesa flotante
+    col1, col2, col3 = st.columns([1, 10, 1])
     with col1:
-        periodo = st.selectbox("Período", ["Este mes", "Este trimestre", "Este año", "Todo"])
-    with col2:
-        depto_filtro = st.selectbox("Departamento", ["Todos"] + DEPARTAMENTOS)
+        if st.button("☰", key="hamburger_btn"):
+            st.session_state.sidebar_open = not st.session_state.get('sidebar_open', False)
+            st.rerun()
     
-    hoy = date.today()
-    if periodo == "Este mes":
-        fecha_inicio = hoy.replace(day=1)
-        cond_fecha = f"AND date >= '{fecha_inicio}'"
-    elif periodo == "Este trimestre":
-        mes_actual = hoy.month
-        fecha_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
-        cond_fecha = f"AND date >= '{fecha_inicio}'"
-    elif periodo == "Este año":
-        fecha_inicio = hoy.replace(month=1, day=1)
-        cond_fecha = f"AND date >= '{fecha_inicio}'"
-    else:
-        cond_fecha = ""
+    # Inicializar estado
+    if 'sidebar_open' not in st.session_state:
+        st.session_state.sidebar_open = False
     
-    query = f"""
-    SELECT 
-        e.name as Empleado,
-        e.position as Cargo,
-        e.department as Departamento,
-        COALESCE(SUM(s.autoliquidable + s.oferta + s.marca + s.adicional), 0) as Total,
-        e.goal as Meta
-    FROM employees e
-    LEFT JOIN sales s ON e.id = s.employee_id {cond_fecha}
-    """
+    # Overlay para cerrar menú haciendo clic fuera
+    if st.session_state.sidebar_open:
+        st.markdown("""
+        <div class="menu-overlay" onclick="document.querySelector('[data-testid=stSidebar] button').click()"></div>
+        """, unsafe_allow_html=True)
     
-    if depto_filtro != "Todos":
-        query += f" WHERE e.department = '{depto_filtro}'"
-    
-    query += " GROUP BY e.id ORDER BY Total DESC"
-    
-    df = safe_dataframe(query)
-    
-    if df.empty:
-        st.info("ℹ️ No hay datos aún")
-        return
-    
-    df['Cumplimiento'] = (df['Total'] / df['Meta'] * 100).round(1)
-    df["Posición"] = range(1, len(df) + 1)
-    
-    st.dataframe(df[["Posición", "Empleado", "Cargo", "Departamento", "Total", "Cumplimiento"]], use_container_width=True, hide_index=True)
+    # ===== SIDEBAR CON TODO EL CONTENIDO =====
+    if st.session_state.sidebar_open:
+        with st.sidebar:
+            # Botón de cerrar manual
+            col1, col2 = st.columns([6, 1])
+            with col2:
+                if st.button("✕", key="close_sidebar", help="Cerrar menú"):
+                    st.session_state.sidebar_open = False
+                    st.rerun()
+            
+            # Logo
+            st.markdown("""
+            <div style="text-align: center; margin: 10px 0 20px 0;">
+                <h1 style="color: #4f7cff; font-size: 28px; margin: 0;">🏥 LOCATEL</h1>
+                <p style="color: #666; font-size: 12px;">Sistema de Gestión de Ventas</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Información del usuario (si es empleado)
+            emp_info = get_employee_info(st.session_state.user["id"])
+            if emp_info:
+                st.markdown(f"""
+                <div class="user-card">
+                    <div style="font-size: 40px; margin-bottom: 5px;">👤</div>
+                    <div class="user-name">{emp_info[1]}</div>
+                    <div>
+                        <span class="user-badge">{emp_info[2] or 'Sin cargo'}</span>
+                        <span class="user-badge">{emp_info[3] or 'Sin depto'}</span>
+                    </div>
+                    <div class="user-meta">
+                        <span>🎯 Meta: {emp_info[4]} uni</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.divider()
+            
+            # ===== MENÚ DE NAVEGACIÓN =====
+            st.markdown("### 📍 Navegación")
+            
+            # En la función show_menu(), reemplaza la sección de menú:
 
+            if st.session_state.user["role"] == "admin":
+                menu_items = [
+                    ("📊 Dashboard", "Dashboard"),
+                    ("🏆 Ranking", "Ranking"),
+                    ("🧑‍ Empleados", "Empleados"),
+                    ("👥 Usuarios", "Usuarios"),
+                    ("📊 Reportes", "Reportes"),
+                    ("📱 Afiliaciones", "Admin Afiliaciones"),  # Nueva opción
+                    ("💾 Backups", "Backups")
+                ]
+            else:
+                menu_items = [
+                    ("📝 Registrar ventas", "Registrar ventas"),
+                    ("📱 Registrar afiliaciones", "Registrar afiliaciones"),  # Nueva opción
+                    ("📊 Mis afiliaciones", "Mis afiliaciones"),  # Nueva opción
+                    ("📈 Mi Desempeño", "Mi desempeño"),
+                    ("👤 Mi perfil", "Mi perfil"),
+                    ("🏆 Ranking", "Ranking")
+                ]
+            
+            for label, page in menu_items:
+                if st.button(
+                    label,
+                    key=f"nav_{page}",
+                    use_container_width=True,
+                    type="primary" if st.session_state.page == page else "secondary"
+                ):
+                    st.session_state.page = page
+                    st.session_state.sidebar_open = False
+                    st.rerun()
+            
+            st.divider()
+            
+            # ===== INDICADOR KEEP-ALIVE =====
+            try:
+                from keep_alive import get_ping_count, get_last_ping
+                ping_count = get_ping_count()
+                last_ping = get_last_ping()
+                
+                last_ping_str = last_ping.strftime("%H:%M:%S") if last_ping else "Iniciando..."
+                
+                st.markdown(f"""
+                <div class="keep-alive-card">
+                    <div class="keep-alive-header">
+                        <div class="pulse-dot"></div>
+                        <span>🔄 Sistema activo</span>
+                    </div>
+                    <div class="keep-alive-stats">
+                        <span>📊 Pings realizados</span>
+                        <span class="ping-badge">{ping_count}</span>
+                    </div>
+                    <div class="keep-alive-stats" style="margin-top: 5px;">
+                        <span>⏱️ Último ping</span>
+                        <span class="ping-badge">{last_ping_str}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            except Exception as e:
+                st.markdown("""
+                <div class="keep-alive-card">
+                    <div class="keep-alive-header">
+                        <div class="pulse-dot"></div>
+                        <span>🔄 Sistema activo</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Botón de cerrar sesión
+            if st.button("🚪 Cerrar Sesión", use_container_width=True, type="primary"):
+                st.session_state.clear()
+                st.cache_data.clear()
+                st.rerun()
+
+# ============= PÁGINA DE EMPLEADOS =============
 def page_empleados():
     st.title("🧑‍💼 Gestión de Empleados AIS")
     
-    tab1, tab2 = st.tabs(["➕ Registrar empleado", "📋 Lista de empleados"])
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "➕ Registrar empleado", 
+        "👤 Asignar usuario", 
+        "📋 Lista de empleados",
+        "✏️ Editar/Eliminar"
+    ])
     
+    # ===== PESTAÑA 1: REGISTRAR EMPLEADO =====
     with tab1:
+        st.markdown("""
+        <div class="card" style="background: #e8f4fd;">
+            <h4>📌 Paso 1: Registrar empleado</h4>
+            <p>Primero registra los datos del empleado. Luego podrás asignarle un usuario.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         with st.form("registrar_empleado_form"):
             col1, col2 = st.columns(2)
             with col1:
@@ -892,6 +1090,7 @@ def page_empleados():
                         
                         if success:
                             st.success(f"✅ Empleado '{name}' registrado exitosamente!")
+                            st.info("👉 Ahora ve a la pestaña 'Asignar usuario' para crear su usuario.")
                             st.balloons()
                             st.cache_data.clear()
                             time.sleep(1)
@@ -899,37 +1098,815 @@ def page_empleados():
                 else:
                     st.warning("⚠️ Completa todos los campos obligatorios (*)")
     
+    # ===== PESTAÑA 2: ASIGNAR USUARIO =====
     with tab2:
+        st.markdown("""
+        <div class="card" style="background: #fff3cd;">
+            <h4>📌 Paso 2: Asignar usuario a empleado</h4>
+            <p>Crea un usuario y asígnalo a un empleado existente.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        empleados_sin_usuario = execute_query("""
+            SELECT id, name, position, department 
+            FROM employees 
+            WHERE user_id IS NULL
+            ORDER BY name
+        """)
+        
+        if not empleados_sin_usuario:
+            st.info("✅ Todos los empleados ya tienen usuario asignado.")
+            if st.button("➕ Registrar nuevo empleado", key="btn_nuevo_emp"):
+                st.session_state.page = "Empleados"
+                st.rerun()
+        else:
+            with st.form("asignar_usuario_form"):
+                empleado_options = {f"{emp[1]} - {emp[2]}": emp[0] for emp in empleados_sin_usuario}
+                selected_empleado = st.selectbox(
+                    "Seleccionar empleado*", 
+                    options=list(empleado_options.keys())
+                )
+                empleado_id = empleado_options[selected_empleado]
+                
+                st.divider()
+                
+                st.subheader("Datos del usuario")
+                username = st.text_input("Nombre de usuario*", placeholder="ej: juan.perez")
+                password = st.text_input("Contraseña*", type="password", placeholder="Mínimo 6 caracteres")
+                confirm_password = st.text_input("Confirmar contraseña*", type="password")
+                
+                submitted = st.form_submit_button("Crear usuario y asignar", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if not username or not password:
+                        st.warning("⚠️ Completa todos los campos obligatorios")
+                    elif len(password) < 6:
+                        st.warning("⚠️ La contraseña debe tener al menos 6 caracteres")
+                    elif password != confirm_password:
+                        st.warning("⚠️ Las contraseñas no coinciden")
+                    else:
+                        try:
+                            user_result = create_user(username, password, "empleado")
+                            
+                            if user_result:
+                                user_id = user_result[0]
+                                
+                                update_query = "UPDATE employees SET user_id = ? WHERE id = ?"
+                                update_success = execute_insert(update_query, (user_id, empleado_id))
+                                
+                                if update_success:
+                                    st.success(f"✅ Usuario '{username}' creado y asignado exitosamente!")
+                                    st.balloons()
+                                    st.cache_data.clear()
+                                    time.sleep(1)
+                                    st.rerun()
+                        except ValueError as e:
+                            st.error(f"❌ {e}")
+                        except Exception as e:
+                            st.error(f"❌ Error al crear usuario: {e}")
+    
+    # ===== PESTAÑA 3: LISTA DE EMPLEADOS =====
+    with tab3:
+        st.subheader("📋 Lista completa de empleados")
+        
         df_emp = safe_dataframe("""
             SELECT 
+                e.id,
                 e.name as 'Nombre',
                 e.position as 'Cargo',
                 e.department as 'Departamento',
                 e.goal as 'Meta',
+                CASE 
+                    WHEN u.username IS NOT NULL THEN u.username 
+                    ELSE '⏳ Pendiente' 
+                END as 'Usuario',
                 CASE 
                     WHEN u.username IS NOT NULL THEN '✅ Asignado'
                     ELSE '❌ Sin usuario'
                 END as 'Estado'
             FROM employees e
             LEFT JOIN users u ON e.user_id = u.id
-            ORDER BY e.department, e.name
+            ORDER BY 
+                CASE WHEN u.username IS NULL THEN 0 ELSE 1 END,
+                e.department, 
+                e.name
         """)
         
         if not df_emp.empty:
-            st.dataframe(df_emp, use_container_width=True, hide_index=True)
+            def color_estado(val):
+                if '✅' in val:
+                    return 'background-color: #d4edda'
+                elif '❌' in val:
+                    return 'background-color: #f8d7da'
+                return ''
+            
+            styled_df = df_emp.style.applymap(color_estado, subset=['Estado'])
+            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total empleados", len(df_emp))
+            with col2:
+                con_usuario = len(df_emp[df_emp['Estado'] == '✅ Asignado'])
+                st.metric("Con usuario", con_usuario)
+            with col3:
+                sin_usuario = len(df_emp[df_emp['Estado'] == '❌ Sin usuario'])
+                st.metric("Sin usuario", sin_usuario)
+            
+            st.subheader("📊 Resumen por departamento")
+            depto_resumen = df_emp.groupby('Departamento').agg({
+                'Nombre': 'count'
+            }).rename(columns={'Nombre': 'Empleados'}).reset_index()
+            st.dataframe(depto_resumen, use_container_width=True, hide_index=True)
         else:
             st.info("📭 No hay empleados registrados")
+    
+    # ===== PESTAÑA 4: EDITAR/ELIMINAR EMPLEADOS =====
+    with tab4:
+        st.subheader("✏️ Editar o Eliminar Empleados")
+        
+        todos_empleados = execute_query("""
+            SELECT 
+                e.id, 
+                e.name, 
+                e.position, 
+                e.department, 
+                e.goal,
+                u.username
+            FROM employees e
+            LEFT JOIN users u ON e.user_id = u.id
+            ORDER BY e.name
+        """)
+        
+        if not todos_empleados:
+            st.info("📭 No hay empleados para editar")
+        else:
+            empleado_options = {}
+            for emp in todos_empleados:
+                usuario_info = f" (Usuario: {emp[5]})" if emp[5] else " (Sin usuario)"
+                display_text = f"{emp[1]} - {emp[2]} - {emp[3]}{usuario_info}"
+                empleado_options[display_text] = emp[0]
+            
+            selected_display = st.selectbox(
+                "Seleccionar empleado",
+                options=list(empleado_options.keys()),
+                key="select_empleado_editar"
+            )
+            empleado_id = empleado_options[selected_display]
+            
+            empleado_data = next((emp for emp in todos_empleados if emp[0] == empleado_id), None)
+            
+            if empleado_data:
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    st.markdown("### 📝 Editar información")
+                    with st.form("editar_empleado_form"):
+                        new_name = st.text_input("Nombre", value=empleado_data[1])
+                        new_position = st.selectbox("Cargo", CARGOS, 
+                                                   index=CARGOS.index(empleado_data[2]) if empleado_data[2] in CARGOS else 0)
+                        new_department = st.selectbox("Departamento", DEPARTAMENTOS,
+                                                     index=DEPARTAMENTOS.index(empleado_data[3]) if empleado_data[3] in DEPARTAMENTOS else 0)
+                        new_goal = st.number_input("Meta mensual", value=empleado_data[4], min_value=1, step=50)
+                        
+                        col_edit1, col_edit2 = st.columns(2)
+                        with col_edit1:
+                            submitted_edit = st.form_submit_button("💾 Guardar cambios", type="primary", use_container_width=True)
+                        with col_edit2:
+                            submitted_delete = st.form_submit_button("🗑️ Eliminar empleado", type="secondary", use_container_width=True)
+                        
+                        if submitted_edit:
+                            if new_name and new_position and new_department:
+                                update_query = """
+                                    UPDATE employees 
+                                    SET name = ?, position = ?, department = ?, goal = ?
+                                    WHERE id = ?
+                                """
+                                success = execute_insert(update_query, (new_name, new_position, new_department, new_goal, empleado_id))
+                                
+                                if success:
+                                    st.success("✅ Empleado actualizado exitosamente!")
+                                    st.balloons()
+                                    st.cache_data.clear()
+                                    time.sleep(1)
+                                    st.rerun()
+                            else:
+                                st.warning("⚠️ Completa todos los campos")
+                        
+                        if submitted_delete:
+                            ventas = execute_query("SELECT COUNT(*) FROM sales WHERE employee_id = ?", (empleado_id,))
+                            tiene_ventas = ventas[0][0] > 0 if ventas else False
+                            
+                            if tiene_ventas:
+                                st.error("❌ No se puede eliminar: el empleado tiene ventas registradas")
+                            else:
+                                st.session_state.confirmar_eliminar = empleado_id
+                    
+                    if 'confirmar_eliminar' in st.session_state and st.session_state.confirmar_eliminar == empleado_id:
+                        st.warning("⚠️ ¿Estás seguro de eliminar este empleado?")
+                        col_confirm1, col_confirm2 = st.columns(2)
+                        with col_confirm1:
+                            if st.button("✅ Sí, eliminar", key="confirm_si"):
+                                delete_query = "DELETE FROM employees WHERE id = ?"
+                                success = execute_insert(delete_query, (empleado_id,))
+                                
+                                if success:
+                                    st.success("✅ Empleado eliminado exitosamente!")
+                                    del st.session_state.confirmar_eliminar
+                                    st.cache_data.clear()
+                                    time.sleep(1)
+                                    st.rerun()
+                        with col_confirm2:
+                            if st.button("❌ No, cancelar", key="confirm_no"):
+                                del st.session_state.confirmar_eliminar
+                                st.rerun()
+                
+                with col2:
+                    st.markdown("### ℹ️ Información")
+                    
+                    ventas_count = execute_query("SELECT COUNT(*) FROM sales WHERE employee_id = ?", (empleado_id,))
+                    total_ventas = ventas_count[0][0] if ventas_count else 0
+                    
+                    st.markdown(f"""
+                    **ID:** {empleado_data[0]}
+                    
+                    **Usuario:** {empleado_data[5] or 'No asignado'}
+                    
+                    **Ventas:** {total_ventas}
+                    """)
+                    
+                    if empleado_data[5]:
+                        st.info("🔒 El usuario asociado no se puede modificar aquí")
+                    else:
+                        st.info("👤 Este empleado no tiene usuario asignado")
 
+# ============= PÁGINA DE USUARIOS =============
 def page_usuarios():
     st.title("👤 Gestión de Usuarios AIS")
     
-    users = get_all_users()
-    if users:
-        df_users = pd.DataFrame(users, columns=["ID", "Usuario", "Rol", "Empleado", "Departamento"])
-        df_users['Empleado'] = df_users['Empleado'].fillna('—')
-        df_users['Departamento'] = df_users['Departamento'].fillna('—')
+    tab1, tab2, tab3 = st.tabs([
+        "📋 Lista de usuarios", 
+        "🔑 Cambiar contraseña",
+        "✏️ Editar/Eliminar usuarios"
+    ])
+    
+    with tab1:
+        users = get_all_users()
+        if users:
+            df_users = pd.DataFrame(users, columns=["ID", "Usuario", "Rol", "Empleado", "Departamento"])
+            df_users['Empleado'] = df_users['Empleado'].fillna('—')
+            df_users['Departamento'] = df_users['Departamento'].fillna('—')
+            
+            st.dataframe(df_users, use_container_width=True, hide_index=True)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total usuarios", len(df_users))
+            with col2:
+                st.metric("Administradores", len(df_users[df_users['Rol'] == 'admin']))
+            with col3:
+                st.metric("Empleados", len(df_users[df_users['Rol'] == 'empleado']))
+        else:
+            st.info("No hay usuarios registrados")
+    
+    with tab2:
+        st.subheader("Cambiar contraseña de usuario")
         
-        st.dataframe(df_users, use_container_width=True, hide_index=True)
+        users = get_all_users()
+        if users:
+            user_options = {f"{u[1]} ({u[3] or 'Sin empleado'})": u[0] for u in users}
+            selected_user = st.selectbox("Seleccionar usuario", options=list(user_options.keys()), key="cambiar_pass_select")
+            user_id = user_options[selected_user]
+            
+            new_pass = st.text_input("Nueva contraseña", type="password", placeholder="Mínimo 6 caracteres")
+            confirm_pass = st.text_input("Confirmar contraseña", type="password")
+            
+            if st.button("Cambiar contraseña", type="primary"):
+                if new_pass and len(new_pass) >= 6:
+                    if new_pass == confirm_pass:
+                        from auth import hash_password
+                        success = execute_insert(
+                            "UPDATE users SET password = ? WHERE id = ?",
+                            (hash_password(new_pass), user_id)
+                        )
+                        if success:
+                            st.success("✅ Contraseña actualizada!")
+                            st.balloons()
+                    else:
+                        st.error("❌ Las contraseñas no coinciden")
+                else:
+                    st.warning("⚠️ La contraseña debe tener al menos 6 caracteres")
+        else:
+            st.info("No hay usuarios para modificar")
+    
+    with tab3:
+        st.subheader("✏️ Editar o Eliminar Usuarios")
+        
+        st.markdown("""
+        <div class="card" style="background: #fff3cd;">
+            <h4>⚠️ Importante</h4>
+            <p>Los usuarios que tienen un empleado asociado no se pueden eliminar directamente.</p>
+            <p>Primero debes desasociar el empleado o eliminarlo.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        todos_usuarios = execute_query("""
+            SELECT 
+                u.id, 
+                u.username, 
+                u.role,
+                e.name as empleado_nombre,
+                e.id as empleado_id
+            FROM users u
+            LEFT JOIN employees e ON u.id = e.user_id
+            ORDER BY u.username
+        """)
+        
+        if not todos_usuarios:
+            st.info("📭 No hay usuarios para editar")
+        else:
+            usuario_options = {}
+            for user in todos_usuarios:
+                empleado_info = f" (Empleado: {user[3]})" if user[3] else " (Sin empleado)"
+                display_text = f"{user[1]} - {user[2]}{empleado_info}"
+                usuario_options[display_text] = user[0]
+            
+            selected_display = st.selectbox(
+                "Seleccionar usuario",
+                options=list(usuario_options.keys()),
+                key="select_usuario_editar"
+            )
+            usuario_id = usuario_options[selected_display]
+            
+            usuario_data = next((user for user in todos_usuarios if user[0] == usuario_id), None)
+            
+            if usuario_data:
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    st.markdown("### 📝 Editar información")
+                    
+                    if usuario_data[1] == "admin":
+                        st.warning("⚠️ El usuario 'admin' no se puede modificar")
+                    else:
+                        with st.form("editar_usuario_form"):
+                            new_username = st.text_input("Nombre de usuario", value=usuario_data[1])
+                            new_role = st.selectbox("Rol", ["empleado", "admin"], 
+                                                  index=0 if usuario_data[2] == "empleado" else 1)
+                            
+                            col_edit1, col_edit2 = st.columns(2)
+                            with col_edit1:
+                                submitted_edit = st.form_submit_button("💾 Guardar cambios", type="primary", use_container_width=True)
+                            with col_edit2:
+                                submitted_delete = st.form_submit_button("🗑️ Eliminar usuario", type="secondary", use_container_width=True)
+                            
+                            if submitted_edit:
+                                if new_username:
+                                    check_query = "SELECT id FROM users WHERE username = ? AND id != ?"
+                                    check_result = execute_query(check_query, (new_username, usuario_id))
+                                    
+                                    if check_result:
+                                        st.warning(f"⚠️ El nombre de usuario '{new_username}' ya existe")
+                                    else:
+                                        update_query = "UPDATE users SET username = ?, role = ? WHERE id = ?"
+                                        success = execute_insert(update_query, (new_username, new_role, usuario_id))
+                                        
+                                        if success:
+                                            st.success("✅ Usuario actualizado exitosamente!")
+                                            st.balloons()
+                                            st.cache_data.clear()
+                                            time.sleep(1)
+                                            st.rerun()
+                                else:
+                                    st.warning("⚠️ El nombre de usuario no puede estar vacío")
+                            
+                            if submitted_delete:
+                                if usuario_data[3]:
+                                    st.error("❌ No se puede eliminar: el usuario tiene un empleado asociado")
+                                else:
+                                    st.session_state.confirmar_eliminar_usuario = usuario_id
+                        
+                        if 'confirmar_eliminar_usuario' in st.session_state and st.session_state.confirmar_eliminar_usuario == usuario_id:
+                            st.warning(f"⚠️ ¿Estás seguro de eliminar el usuario '{usuario_data[1]}'?")
+                            col_confirm1, col_confirm2 = st.columns(2)
+                            with col_confirm1:
+                                if st.button("✅ Sí, eliminar", key="confirm_si_usuario"):
+                                    delete_query = "DELETE FROM users WHERE id = ?"
+                                    success = execute_insert(delete_query, (usuario_id,))
+                                    
+                                    if success:
+                                        st.success("✅ Usuario eliminado exitosamente!")
+                                        del st.session_state.confirmar_eliminar_usuario
+                                        st.cache_data.clear()
+                                        time.sleep(1)
+                                        st.rerun()
+                            with col_confirm2:
+                                if st.button("❌ No, cancelar", key="confirm_no_usuario"):
+                                    del st.session_state.confirmar_eliminar_usuario
+                                    st.rerun()
+                
+                with col2:
+                    st.markdown("### ℹ️ Información")
+                    
+                    st.markdown(f"""
+                    **ID:** {usuario_data[0]}
+                    
+                    **Rol:** {usuario_data[2]}
+                    
+                    **Empleado:** {usuario_data[3] or 'No asociado'}
+                    """)
+                    
+                    if usuario_data[3]:
+                        st.info("🔒 Este usuario tiene un empleado asociado")
+                    else:
+                        st.info("👤 Usuario sin empleado")
+
+# ============= PÁGINAS DE VENTAS =============
+def page_dashboard():
+    st.title("📊 Dashboard de ventas")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        fecha_inicio = st.date_input("Fecha inicio", value=date.today().replace(day=1))
+    with col2:
+        fecha_fin = st.date_input("Fecha fin", value=date.today())
+    with col3:
+        depto_filtro = st.multiselect("Departamento", DEPARTAMENTOS, default=DEPARTAMENTOS)
+    
+    if st.button("🔄 Recargar datos"):
+        st.cache_data.clear()
+        st.rerun()
+    
+    query = """
+        SELECT s.*, e.name, e.position, e.department 
+        FROM sales s
+        JOIN employees e ON s.employee_id = e.id
+        WHERE date BETWEEN ? AND ?
+    """
+    params = [fecha_inicio, fecha_fin]
+    
+    if depto_filtro:
+        placeholders = ','.join(['?'] * len(depto_filtro))
+        query += f" AND e.department IN ({placeholders})"
+        params.extend(depto_filtro)
+    
+    query += " ORDER BY date DESC"
+    
+    with st.spinner("Cargando datos..."):
+        df = safe_dataframe(query, params)
+    
+    if df.empty:
+        st.info("ℹ️ No hay ventas en el período seleccionado")
+        return
+    
+    df["total"] = df[['autoliquidable','oferta','marca','adicional']].sum(axis=1)
+    df["date"] = pd.to_datetime(df["date"])
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Unidades", f"{int(df['total'].sum()):,}")
+    with col2:
+        st.metric("Autoliquidable", f"{int(df['autoliquidable'].sum()):,}")
+    with col3:
+        st.metric("Oferta Semana", f"{int(df['oferta'].sum()):,}")
+    with col4:
+        st.metric("Marca Propia", f"{int(df['marca'].sum()):,}")
+    
+    # Crear las pestañas
+    tab1, tab2, tab3 = st.tabs(["📈 Evolución", "📊 Distribución", "👥 Por empleado"])
+    
+    # ===== PESTAÑA 1: EVOLUCIÓN =====
+    with tab1:
+        st.subheader("📈 Evolución diaria de ventas")
+        
+        vista = st.radio(
+            "Ver:",
+            ["📊 Todas las áreas", "🔍 Departamento específico"],
+            horizontal=True,
+            key="vista_evolucion"
+        )
+        
+        if vista == "📊 Todas las áreas":
+            # Gráfico de áreas apiladas por departamento
+            df_pivot = df.pivot_table(
+                index='date', 
+                columns='department', 
+                values='total', 
+                aggfunc='sum',
+                fill_value=0
+            ).reset_index()
+            
+            if len(df_pivot.columns) > 1:
+                fig = px.area(
+                    df_pivot,
+                    x='date',
+                    y=df_pivot.columns[1:],
+                    title='Evolución de ventas - Todas las áreas',
+                    labels={'value': 'Unidades', 'date': 'Fecha', 'variable': 'Departamento'},
+                    color_discrete_map={
+                        'Droguería': '#FF6B6B',
+                        'Equipos Médicos': '#4ECDC4',
+                        'Pasillos': '#45B7D1',
+                        'Cajas': '#96CEB4'
+                    }
+                )
+                
+                fig.update_layout(
+                    hovermode='x unified',
+                    legend_title_text='Departamento',
+                    xaxis_title='Fecha',
+                    yaxis_title='Unidades vendidas',
+                    height=500
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No hay suficientes datos para mostrar el gráfico de áreas")
+        
+        else:
+            deptos_disponibles = df['department'].unique()
+            if len(deptos_disponibles) > 0:
+                depto = st.selectbox(
+                    "Selecciona departamento:", 
+                    deptos_disponibles,
+                    key="depto_evolucion"
+                )
+                
+                # Aquí modificamos para mostrar por categorías en lugar de solo total
+                df_depto = df[df['department'] == depto].groupby('date').agg({
+                    'autoliquidable': 'sum',
+                    'oferta': 'sum',
+                    'marca': 'sum',
+                    'adicional': 'sum'
+                }).reset_index()
+                
+                # Convertir a formato largo para plotly
+                df_melted = df_depto.melt(
+                    id_vars=['date'], 
+                    value_vars=['autoliquidable', 'oferta', 'marca', 'adicional'],
+                    var_name='Categoría', 
+                    value_name='Unidades'
+                )
+                
+                # Mapear nombres más amigables
+                categoria_names = {
+                    'autoliquidable': 'Autoliquidable',
+                    'oferta': 'Oferta Semana',
+                    'marca': 'Marca Propia',
+                    'adicional': 'Producto Adicional'
+                }
+                df_melted['Categoría'] = df_melted['Categoría'].map(categoria_names)
+                
+                fig = px.line(
+                    df_melted,
+                    x='date',
+                    y='Unidades',
+                    color='Categoría',
+                    title=f'Evolución por categoría - {depto}',
+                    markers=True,
+                    labels={'date': 'Fecha', 'Unidades': 'Unidades vendidas'}
+                )
+                
+                fig.update_traces(line=dict(width=2))
+                fig.update_layout(height=500, hovermode='x unified')
+                
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # Métricas de resumen
+        st.divider()
+        col1, col2, col3 = st.columns(3)
+        
+        df_daily = df.groupby('date')['total'].sum().reset_index()
+        
+        with col1:
+            st.metric(
+                "📊 Promedio diario", 
+                f"{int(df_daily['total'].mean()):,}",
+                help="Promedio de unidades vendidas por día"
+            )
+        with col2:
+            mejor_dia = df_daily.loc[df_daily['total'].idxmax()]
+            st.metric(
+                "🏆 Mejor día", 
+                f"{int(mejor_dia['total']):,}",
+                help=f"Fecha: {mejor_dia['date'].strftime('%d/%m/%Y')}"
+            )
+        with col3:
+            st.metric(
+                "📦 Total período", 
+                f"{int(df_daily['total'].sum()):,}",
+                help="Total de unidades en el período seleccionado"
+            )
+    
+    # ===== PESTAÑA 2: DISTRIBUCIÓN =====
+    with tab2:
+        dist_df = df.groupby('department')[['autoliquidable','oferta','marca','adicional']].sum().reset_index()
+        dist_df_melted = dist_df.melt(id_vars=['department'], var_name='Tipo', value_name='Cantidad')
+        
+        # Mapear nombres más amigables
+        tipo_names = {
+            'autoliquidable': 'Autoliquidable',
+            'oferta': 'Oferta Semana',
+            'marca': 'Marca Propia',
+            'adicional': 'Producto Adicional'
+        }
+        dist_df_melted['Tipo'] = dist_df_melted['Tipo'].map(tipo_names)
+        
+        fig2 = px.bar(
+            dist_df_melted, 
+            x='department', 
+            y='Cantidad', 
+            color='Tipo',
+            title="Distribución por departamento y tipo",
+            barmode='stack',
+            labels={'department': 'Departamento', 'Cantidad': 'Unidades', 'Tipo': 'Tipo de venta'},
+            text='Cantidad'
+        )
+        
+        fig2.update_traces(texttemplate='%{text}', textposition='inside')
+        fig2.update_layout(uniformtext_minsize=8)
+        
+        st.plotly_chart(fig2, use_container_width=True)
+        
+        # Gráfico de pastel para la distribución total
+        st.subheader("🥧 Distribución porcentual")
+        
+        totales = df[['autoliquidable', 'oferta', 'marca', 'adicional']].sum()
+        pie_df = pd.DataFrame({
+            'Tipo': ['Autoliquidable', 'Oferta Semana', 'Marca Propia', 'Producto Adicional'],
+            'Cantidad': [totales['autoliquidable'], totales['oferta'], totales['marca'], totales['adicional']]
+        })
+        
+        fig_pie = px.pie(
+            pie_df, 
+            values='Cantidad', 
+            names='Tipo',
+            title='Distribución total por tipo de venta',
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        
+        fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+        st.plotly_chart(fig_pie, use_container_width=True)
+    
+    # ===== PESTAÑA 3: POR EMPLEADO (MEJORADA CON CATEGORÍAS) =====
+    with tab3:
+        st.subheader("👥 Ventas por empleado")
+        
+        # Resumen por empleado con todas las categorías
+        empleado_resumen = df.groupby(['name', 'department']).agg({
+            'autoliquidable': 'sum',
+            'oferta': 'sum',
+            'marca': 'sum',
+            'adicional': 'sum',
+            'total': 'sum'
+        }).reset_index().sort_values(['department', 'total'], ascending=[True, False])
+        
+        if not empleado_resumen.empty:
+            # Gráfico de barras apiladas por categoría
+            empleado_melted = empleado_resumen.melt(
+                id_vars=['name', 'department'],
+                value_vars=['autoliquidable', 'oferta', 'marca', 'adicional'],
+                var_name='Categoría',
+                value_name='Cantidad'
+            )
+            
+            # Mapear nombres
+            cat_names = {
+                'autoliquidable': 'Autoliquidable',
+                'oferta': 'Oferta',
+                'marca': 'Marca Propia',
+                'adicional': 'Adicional'
+            }
+            empleado_melted['Categoría'] = empleado_melted['Categoría'].map(cat_names)
+            
+            fig_empleados = px.bar(
+                empleado_melted,
+                x='name',
+                y='Cantidad',
+                color='Categoría',
+                title='Ventas por Empleado - Detalle por Categoría',
+                labels={'name': 'Empleado', 'Cantidad': 'Unidades', 'Categoría': 'Tipo'},
+                barmode='stack',
+                text='Cantidad'
+            )
+            
+            fig_empleados.update_traces(texttemplate='%{text}', textposition='inside')
+            fig_empleados.update_layout(
+                xaxis_tickangle=-45,
+                uniformtext_minsize=8,
+                height=500
+            )
+            
+            st.plotly_chart(fig_empleados, use_container_width=True)
+            
+            st.divider()
+            st.subheader("📋 Tabla de Rendimiento Detallada")
+            
+            # Tabla detallada con todas las categorías
+            tabla_empleados = empleado_resumen.copy()
+            
+            # Formatear números
+            for col in ['autoliquidable', 'oferta', 'marca', 'adicional', 'total']:
+                tabla_empleados[col] = tabla_empleados[col].apply(lambda x: f"{int(x):,}")
+            
+            # Renombrar columnas
+            tabla_empleados.columns = [
+                'Empleado', 'Departamento', 
+                'Autoliquidable', 'Oferta', 'Marca Propia', 'Adicional', 'Total'
+            ]
+            
+            # Reordenar columnas
+            column_order = ['Empleado', 'Departamento', 'Autoliquidable', 'Oferta', 
+                           'Marca Propia', 'Adicional', 'Total']
+            tabla_empleados = tabla_empleados[column_order]
+            
+            st.dataframe(tabla_empleados, use_container_width=True, hide_index=True)
+            
+            # Opción para ver resumen por departamento
+            with st.expander("📊 Ver resumen por departamento"):
+                depto_resumen = df.groupby('department').agg({
+                    'autoliquidable': 'sum',
+                    'oferta': 'sum',
+                    'marca': 'sum',
+                    'adicional': 'sum',
+                    'total': 'sum'
+                }).reset_index()
+                
+                for col in ['autoliquidable', 'oferta', 'marca', 'adicional', 'total']:
+                    depto_resumen[col] = depto_resumen[col].apply(lambda x: f"{int(x):,}")
+                
+                depto_resumen.columns = [
+                    'Departamento', 'Autoliquidable', 'Oferta', 'Marca Propia', 'Adicional', 'Total'
+                ]
+                
+                st.dataframe(depto_resumen, use_container_width=True, hide_index=True)
+        else:
+            st.info("ℹ️ No hay datos de empleados para mostrar")
+def page_ranking():
+    st.title("🏆 Ranking de Ventas")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        periodo = st.selectbox("Período", ["Este mes", "Este trimestre", "Este año", "Todo"])
+    with col2:
+        depto_filtro = st.selectbox("Departamento", ["Todos"] + DEPARTAMENTOS)
+    
+    if st.button("🔄 Actualizar ranking"):
+        st.cache_data.clear()
+        st.rerun()
+    
+    hoy = date.today()
+    if periodo == "Este mes":
+        fecha_inicio = hoy.replace(day=1)
+        cond_fecha = f"AND date >= '{fecha_inicio}'"
+    elif periodo == "Este trimestre":
+        mes_actual = hoy.month
+        trimestre_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
+        cond_fecha = f"AND date >= '{trimestre_inicio}'"
+    elif periodo == "Este año":
+        fecha_inicio = hoy.replace(month=1, day=1)
+        cond_fecha = f"AND date >= '{fecha_inicio}'"
+    else:
+        cond_fecha = ""
+    
+    query = f"""
+    SELECT 
+        e.name as Empleado,
+        e.position as Cargo,
+        e.department as Departamento,
+        COALESCE(SUM(s.autoliquidable + s.oferta + s.marca + s.adicional), 0) as Total,
+        COUNT(s.id) as Registros,
+        COALESCE(AVG(s.autoliquidable + s.oferta + s.marca + s.adicional), 0) as Promedio,
+        e.goal as Meta
+    FROM employees e
+    LEFT JOIN sales s ON e.id = s.employee_id {cond_fecha}
+    """
+    
+    if depto_filtro != "Todos":
+        query += f" WHERE e.department = '{depto_filtro}'"
+    
+    query += " GROUP BY e.id ORDER BY Total DESC"
+    
+    df = safe_dataframe(query)
+    
+    if df.empty:
+        st.info("ℹ️ No hay datos aún")
+        return
+    
+    df['Cumplimiento'] = (df['Total'] / df['Meta'] * 100).round(1)
+    
+    st.subheader("📋 Ranking General")
+    df_display = df.copy()
+    df_display["Posición"] = range(1, len(df) + 1)
+    df_display["Total"] = df_display["Total"].apply(lambda x: f"{int(x):,}")
+    df_display["Promedio"] = df_display["Promedio"].apply(lambda x: f"{int(x):,}")
+    df_display["Cumplimiento"] = df_display["Cumplimiento"].apply(lambda x: f"{x}%")
+    
+    st.dataframe(
+        df_display[["Posición", "Empleado", "Cargo", "Departamento", "Total", "Registros", "Cumplimiento"]],
+        use_container_width=True,
+        hide_index=True
+    )
 
 def page_registrar_ventas():
     st.title("📝 Registro Diario de Ventas - AIS")
@@ -940,16 +1917,45 @@ def page_registrar_ventas():
         st.error("❌ No tienes un empleado asociado. Contacta al administrador.")
         return
     
+    badge_class = get_badge_class(emp_info[2])
+    
     st.markdown(f"""
-    <div style="background: white; border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <div class="card">
         <h4>Registrando para: {emp_info[1]}</h4>
-        <p>🎯 Meta mensual: {emp_info[4]} unidades</p>
+        <p>
+            <span class="badge {badge_class}">{emp_info[2]}</span>
+            <span class="badge badge-depto">{emp_info[3]}</span>
+            🎯 Meta mensual: {emp_info[4]} unidades
+        </p>
     </div>
     """, unsafe_allow_html=True)
     
-    fecha_registro = st.date_input("📅 Fecha del registro", value=date.today(), max_value=date.today())
+    # Agregar selector de fecha
+    col_fecha1, col_fecha2 = st.columns([2, 2])
+    with col_fecha1:
+        fecha_registro = st.date_input(
+            "📅 Fecha del registro",
+            value=date.today(),
+            max_value=date.today(),
+            help="Selecciona la fecha de las ventas (no puede ser futura)"
+        )
+    
+    # Verificar si ya hay registro para la fecha seleccionada
+    result = execute_query(
+        "SELECT COUNT(*) FROM sales WHERE employee_id = ? AND date = ?",
+        (emp_info[0], str(fecha_registro))
+    )
+    ya_registro = result[0][0] > 0 if result else False
+    
+    if ya_registro:
+        if fecha_registro == date.today():
+            st.warning("⚠️ Ya has registrado ventas hoy. Puedes agregar más o modificar el registro existente.")
+        else:
+            st.warning(f"⚠️ Ya hay ventas registradas para el {fecha_registro.strftime('%d/%m/%Y')}. Puedes agregar más.")
     
     with st.form("ventas_form"):
+        st.subheader(f"Ingresa las ventas del {fecha_registro.strftime('%d/%m/%Y')}")
+        
         col1, col2 = st.columns(2)
         with col1:
             aut = st.number_input("📦 Autoliquidable", min_value=0, step=1, value=0)
@@ -959,24 +1965,134 @@ def page_registrar_ventas():
             of = st.number_input("🔥 Oferta Semana", min_value=0, step=1, value=0)
             ad = st.number_input("➕ Producto Adicional", min_value=0, step=1, value=0)
         
-        submitted = st.form_submit_button("💾 Guardar ventas", use_container_width=True, type="primary")
+        total = aut + of + ma + ad
+        
+        # Obtener ventas del mes actual (basado en la fecha seleccionada)
+        mes_actual = fecha_registro.strftime("%Y-%m")
+        result = execute_query(
+            "SELECT SUM(autoliquidable + oferta + marca + adicional) FROM sales WHERE employee_id = ? AND date LIKE ?",
+            (emp_info[0], f"{mes_actual}%")
+        )
+        ventas_mes = result[0][0] or 0 if result else 0
+        
+        # Si estamos editando un día existente, restar las ventas de ese día para no contar doble
+        if ya_registro:
+            ventas_dia_existentes = execute_query(
+                "SELECT autoliquidable, oferta, marca, adicional FROM sales WHERE employee_id = ? AND date = ?",
+                (emp_info[0], str(fecha_registro))
+            )
+            if ventas_dia_existentes:
+                ventas_existentes = sum(ventas_dia_existentes[0])
+                ventas_mes_ajustadas = ventas_mes - ventas_existentes + total
+            else:
+                ventas_mes_ajustadas = ventas_mes + total
+        else:
+            ventas_mes_ajustadas = ventas_mes + total
+        
+        progreso = (ventas_mes_ajustadas / emp_info[4] * 100) if emp_info[4] > 0 else 0
+        
+        st.markdown(f"""
+        <div style="margin: 20px 0;">
+            <p><strong>Total del día:</strong> {total} unidades</p>
+            <p><strong>Progreso mensual:</strong> {ventas_mes_ajustadas} / {emp_info[4]} unidades ({progreso:.1f}%)</p>
+            <div class="progress">
+                <div class="progress-bar" style="width: {min(progreso, 100)}%;"></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+        with col_btn2:
+            submitted = st.form_submit_button("💾 Guardar ventas", use_container_width=True, type="primary")
         
         if submitted:
-            total = aut + of + ma + ad
             if total > 0:
-                success = execute_insert("""
-                    INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (emp_info[0], str(fecha_registro), aut, of, ma, ad))
-                
-                if success:
-                    st.success(f"✅ Ventas registradas exitosamente!")
-                    st.balloons()
-                    st.cache_data.clear()
-                    time.sleep(1)
-                    st.rerun()
+                if ya_registro:
+                    # Actualizar registro existente
+                    success = execute_insert("""
+                        UPDATE sales 
+                        SET autoliquidable = ?, oferta = ?, marca = ?, adicional = ?
+                        WHERE employee_id = ? AND date = ?
+                    """, (aut, of, ma, ad, emp_info[0], str(fecha_registro)))
+                    
+                    if success:
+                        st.success(f"✅ Ventas actualizadas exitosamente para el {fecha_registro.strftime('%d/%m/%Y')}!")
+                        st.balloons()
+                        st.cache_data.clear()
+                        time.sleep(1)
+                        st.rerun()
+                else:
+                    # Crear nuevo registro
+                    success = execute_insert("""
+                        INSERT INTO sales (employee_id, date, autoliquidable, oferta, marca, adicional)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (emp_info[0], str(fecha_registro), aut, of, ma, ad))
+                    
+                    if success:
+                        st.success(f"✅ Ventas registradas exitosamente para el {fecha_registro.strftime('%d/%m/%Y')}!")
+                        st.balloons()
+                        st.cache_data.clear()
+                        time.sleep(1)
+                        st.rerun()
             else:
                 st.warning("⚠️ Debes ingresar al menos una unidad")
+    
+    # Mostrar historial reciente
+    st.divider()
+    st.subheader("📋 Historial de ventas recientes")
+    
+    df_historial = safe_dataframe("""
+        SELECT 
+            date as Fecha,
+            autoliquidable as Autoliquidable,
+            oferta as Oferta,
+            marca as 'Marca Propia',
+            adicional as Adicional,
+            (autoliquidable + oferta + marca + adicional) as Total
+        FROM sales 
+        WHERE employee_id = ? 
+        ORDER BY date DESC 
+        LIMIT 10
+    """, (emp_info[0],))
+    
+    if not df_historial.empty:
+        df_historial['Fecha'] = pd.to_datetime(df_historial['Fecha']).dt.strftime('%d/%m/%Y')
+        st.dataframe(df_historial, use_container_width=True, hide_index=True)
+        
+        # Opción para editar registros anteriores
+        with st.expander("✏️ Editar registro de otro día"):
+            fechas_anteriores = execute_query("""
+                SELECT DISTINCT date 
+                FROM sales 
+                WHERE employee_id = ? AND date < ?
+                ORDER BY date DESC
+            """, (emp_info[0], date.today()))
+            
+            if fechas_anteriores:
+                fechas_opciones = [fecha[0] for fecha in fechas_anteriores]
+                fecha_seleccionada = st.selectbox(
+                    "Selecciona una fecha para editar",
+                    options=fechas_opciones,
+                    format_func=lambda x: datetime.strptime(x, '%Y-%m-%d').strftime('%d/%m/%Y')
+                )
+                
+                if st.button("📝 Cargar registro para editar", use_container_width=True):
+                    # Cargar los datos de esa fecha
+                    datos = execute_query("""
+                        SELECT autoliquidable, oferta, marca, adicional
+                        FROM sales 
+                        WHERE employee_id = ? AND date = ?
+                    """, (emp_info[0], fecha_seleccionada))
+                    
+                    if datos:
+                        st.session_state['editar_fecha'] = fecha_seleccionada
+                        st.session_state['editar_aut'] = datos[0][0]
+                        st.session_state['editar_of'] = datos[0][1]
+                        st.session_state['editar_ma'] = datos[0][2]
+                        st.session_state['editar_ad'] = datos[0][3]
+                        st.rerun()
+    else:
+        st.info("No hay ventas registradas aún")
 
 def page_mi_desempeno():
     st.title("📊 Mi Desempeño Personal - AIS")
@@ -987,14 +2103,24 @@ def page_mi_desempeno():
         st.error("❌ No tienes un empleado asociado")
         return
     
-    periodo = st.selectbox("Período", ["Este mes", "Este trimestre", "Este año", "Todo"])
+    periodo = st.selectbox(
+        "Período",
+        ["Esta semana", "Este mes", "Este trimestre", "Este año", "Todo"]
+    )
+    
+    if st.button("🔄 Actualizar"):
+        st.cache_data.clear()
+        st.rerun()
     
     hoy = date.today()
-    if periodo == "Este mes":
+    if periodo == "Esta semana":
+        fecha_inicio = hoy - pd.Timedelta(days=hoy.weekday())
+    elif periodo == "Este mes":
         fecha_inicio = hoy.replace(day=1)
     elif periodo == "Este trimestre":
         mes_actual = hoy.month
-        fecha_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
+        trimestre_inicio = hoy.replace(month=((mes_actual-1)//3)*3+1, day=1)
+        fecha_inicio = trimestre_inicio
     elif periodo == "Este año":
         fecha_inicio = hoy.replace(month=1, day=1)
     else:
@@ -1015,16 +2141,23 @@ def page_mi_desempeno():
     df["date"] = pd.to_datetime(df["date"])
     
     total_periodo = int(df["total"].sum())
+    promedio = int(df["total"].mean())
+    mejor_dia = int(df["total"].max())
+    progreso_meta = (total_periodo / emp_info[4] * 100) if emp_info[4] > 0 else 0
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Total período", f"{total_periodo:,}")
     with col2:
-        st.metric("Promedio diario", f"{int(df['total'].mean()):,}")
+        st.metric("Promedio diario", f"{promedio:,}")
     with col3:
-        st.metric("Mejor día", f"{int(df['total'].max()):,}")
+        st.metric("Mejor día", f"{mejor_dia:,}")
+    with col4:
+        st.metric("Progreso meta", f"{progreso_meta:.1f}%")
     
-    fig = px.line(df, x="date", y="total", title=f"📈 Evolución personal - {periodo}", markers=True)
+    fig = px.line(df, x="date", y="total", 
+                 title=f"📈 Evolución personal - {periodo}",
+                 markers=True)
     st.plotly_chart(fig, use_container_width=True)
 
 def page_mi_perfil():
@@ -1033,12 +2166,13 @@ def page_mi_perfil():
     emp_info = get_employee_info(st.session_state.user["id"])
     
     if emp_info:
+        badge_class = get_badge_class(emp_info[2])
         st.markdown(f"""
-        <div style="background: white; border-radius: 16px; padding: 2rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <div class="card" style="text-align: center;">
             <h2>{emp_info[1]}</h2>
             <p>
-                <span style="background: #e7f1ff; padding: 4px 12px; border-radius: 20px;">{emp_info[2]}</span>
-                <span style="background: #e7f1ff; padding: 4px 12px; border-radius: 20px; margin-left: 8px;">{emp_info[3]}</span>
+                <span class="badge {badge_class}" style="font-size: 16px;">{emp_info[2]}</span>
+                <span class="badge badge-depto" style="font-size: 16px;">{emp_info[3]}</span>
             </p>
             <p class="metric">🎯 Meta: {emp_info[4]} unidades/mes</p>
         </div>
@@ -1049,55 +2183,285 @@ def page_mi_perfil():
 def page_reportes():
     st.title("📊 Reportes Avanzados")
     
-    df = safe_dataframe("""
-        SELECT 
-            e.department,
-            SUM(s.autoliquidable + s.oferta + s.marca + s.adicional) as total,
-            COUNT(DISTINCT e.id) as empleados
-        FROM sales s
-        JOIN employees e ON s.employee_id = e.id
-        GROUP BY e.department
-        ORDER BY total DESC
-    """)
+    tipo_reporte = st.selectbox(
+        "Tipo de reporte",
+        ["Ventas por departamento", "Ventas por cargo"]
+    )
     
-    if not df.empty:
-        st.dataframe(df, use_container_width=True)
-        fig = px.bar(df, x='department', y='total', title="Ventas por departamento", color='department')
-        st.plotly_chart(fig, use_container_width=True)
+    if st.button("🔄 Generar reporte"):
+        st.cache_data.clear()
+        st.rerun()
+    
+    if tipo_reporte == "Ventas por departamento":
+        df = safe_dataframe("""
+            SELECT 
+                e.department,
+                SUM(s.autoliquidable + s.oferta + s.marca + s.adicional) as total,
+                AVG(s.autoliquidable + s.oferta + s.marca + s.adicional) as promedio,
+                COUNT(DISTINCT e.id) as empleados,
+                COUNT(s.id) as transacciones
+            FROM sales s
+            JOIN employees e ON s.employee_id = e.id
+            GROUP BY e.department
+            ORDER BY total DESC
+        """)
+        
+        if not df.empty:
+            st.dataframe(df, use_container_width=True)
+            fig = px.bar(df, x='department', y='total',
+                        title="Ventas por departamento",
+                        color='department')
+            st.plotly_chart(fig, use_container_width=True)
 
-# ============= FUNCIÓN PRINCIPAL =============
+# ============= PIE DE PÁGINA =============
+def show_footer_simple():
+    """Versión simplificada del pie de página"""
+    
+    user_info = ""
+    if st.session_state.user:
+        role_icon = "👑" if st.session_state.user["role"] == "admin" else "👤"
+        user_info = f"{role_icon} {st.session_state.user['username']}"
+    
+    st.markdown(f"""
+    <style>
+    .footer-simple {{
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
+        color: white;
+        text-align: center;
+        padding: 8px 15px;
+        font-size: 12px;
+        z-index: 1000;
+        border-top: 2px solid #4f7cff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+    }}
+    
+    .footer-left, .footer-right {{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }}
+    
+    .footer-center {{
+        text-align: center;
+    }}
+    
+    .footer-badge {{
+        background: rgba(79, 124, 255, 0.3);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        border: 1px solid #4f7cff;
+    }}
+    
+    .footer-simple span {{
+        opacity: 0.9;
+        transition: opacity 0.3s;
+    }}
+    
+    .footer-simple span:hover {{
+        opacity: 1;
+    }}
+    </style>
+    
+    <div class="footer-simple">
+        <div class="footer-left">
+            <span>🏥 Locatel Restrepo</span>
+            <span class="footer-badge">AIS</span>
+        </div>
+        <div class="footer-center">
+            <span>© 2024 Sistema de Ventas - v2.0.0</span>
+        </div>
+        <div class="footer-right">
+            <span>{user_info}</span>
+            <span>📅 {datetime.now().strftime('%d/%m/%Y')}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+def show_footer_advanced():
+    """Versión con HORA DE COLOMBIA usando Python (100% funcional)"""
+    
+    from datetime import datetime, timedelta
+    from dateutil import tz
+    import time
+    
+    if not st.session_state.user:
+        return show_footer_simple()
+    
+    try:
+        if st.session_state.user["role"] == "admin":
+            ventas_hoy = execute_query("""
+                SELECT COUNT(*), SUM(autoliquidable + oferta + marca + adicional)
+                FROM sales WHERE date = ?
+            """, (str(date.today()),))
+            
+            ventas_count = ventas_hoy[0][0] if ventas_hoy else 0
+            ventas_total = ventas_hoy[0][1] if ventas_hoy and ventas_hoy[0][1] else 0
+            
+            stats = f"📊 Hoy: {ventas_count} ventas | {ventas_total} uni"
+        else:
+            emp_info = get_employee_info(st.session_state.user["id"])
+            if emp_info:
+                ventas_hoy = execute_query("""
+                    SELECT SUM(autoliquidable + oferta + marca + adicional)
+                    FROM sales WHERE employee_id = ? AND date = ?
+                """, (emp_info[0], str(date.today())))
+                
+                ventas_hoy_total = ventas_hoy[0][0] if ventas_hoy and ventas_hoy[0][0] else 0
+                stats = f"📊 Hoy: {ventas_hoy_total} uni | Meta: {emp_info[4]}"
+            else:
+                stats = "📊 Sin estadísticas"
+    except:
+        stats = "📊 Cargando..."
+    
+    # Obtener hora actual de Colombia (UTC-5)
+    ahora_utc = datetime.utcnow()
+    hora_colombia = ahora_utc - timedelta(hours=5)
+    fecha_hora_actual = hora_colombia.strftime('%d/%m/%Y %H:%M')
+    
+    # Actualizar cada 60 segundos usando Streamlit's built-in rerun
+    if 'last_update' not in st.session_state:
+        st.session_state.last_update = time.time()
+    
+    # Si pasó más de 60 segundos, actualizar
+    if time.time() - st.session_state.last_update > 60:
+        st.session_state.last_update = time.time()
+        st.rerun()
+    
+    st.markdown(f"""
+    <style>
+    .footer-advanced {{
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #0047AB 0%, #FCD116 50%, #CE1126 100%);
+        color: white;
+        padding: 8px 20px;
+        font-size: 13px;
+        z-index: 1000;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+        border-top: 3px solid #CE1126;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }}
+    
+    .footer-section {{
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }}
+    
+    .footer-logo {{
+        font-weight: bold;
+        font-size: 14px;
+        background: rgba(255,255,255,0.25);
+        padding: 3px 12px;
+        border-radius: 20px;
+        border: 1px solid #FCD116;
+    }}
+    
+    .footer-stats {{
+        background: rgba(0,0,0,0.3);
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        border: 1px solid #FCD116;
+    }}
+    
+    .footer-link {{
+        color: white;
+        text-decoration: none;
+        margin: 0 5px;
+        opacity: 0.8;
+        transition: opacity 0.3s;
+        cursor: pointer;
+    }}
+    
+    .footer-link:hover {{
+        opacity: 1;
+        text-decoration: underline;
+        color: #FCD116;
+    }}
+    
+    .footer-version {{
+        font-size: 11px;
+        opacity: 0.7;
+        background: rgba(255,215,0,0.2);
+        padding: 2px 8px;
+        border-radius: 12px;
+        border: 1px solid #FCD116;
+    }}
+    
+    .hora-colombia {{
+        font-weight: bold;
+        background: rgba(255,255,255,0.15);
+        padding: 3px 10px;
+        border-radius: 15px;
+        font-family: monospace;
+        font-size: 12px;
+    }}
+    </style>
+    
+    <div class="footer-advanced">
+        <div class="footer-section">
+            <span class="footer-logo">LOCATEL RESTREPO</span>
+            <span class="footer-stats">{stats}</span>
+        </div>
+        <div class="footer-section">
+            <span>Creado por Edwin Merchan</span>
+            <span class="footer-version">v2.0.0</span>
+        </div>
+        <div class="footer-section">
+            <a href="#" class="footer-link" onclick="alert('🇨🇴 Colombia\\n📞 (601) 123-4567\\n📧 soporte@locatel.co'); return false;">Ayuda</a>
+            <span>|</span>
+            <a href="#" class="footer-link" onclick="alert('Soporte Colombia\\n📱 +57 300 123 4567'); return false;">Soporte</a>
+            <span>|</span>
+            <span class="hora-colombia">⏱️ {fecha_hora_actual}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+def show_footer_selector(version="advanced"):
+    """
+    Mostrar diferentes versiones del footer
+    version: "simple", "advanced", o "full"
+    """
+    if version == "simple":
+        show_footer_simple()
+    elif version == "advanced":
+        show_footer_advanced()
+    else:
+        show_footer_simple()
+
+# ---------------- CONTROL PRINCIPAL ---------------- #
 def main():
     # Inicializar keep-alive
     init_keep_alive()
     
-    # Inicializar session state
-    if "user" not in st.session_state:
-        st.session_state.user = None
-    if "page" not in st.session_state:
-        st.session_state.page = "Login"
+    # Asegurar que el sidebar inicie cerrado
     if 'sidebar_open' not in st.session_state:
         st.session_state.sidebar_open = False
     
-    # Cargar CSS moderno
-    load_css()
-    
     if not st.session_state.user:
-        show_modern_login()
+        show_login()
     else:
-        # Mostrar header moderno
-        create_modern_header()
-        
-        # Mostrar menú
-        show_modern_menu()
+        show_menu()
         
         # Contenido principal
-        st.markdown('<div class="main-content">', unsafe_allow_html=True)
+        st.markdown('<div style="padding: 20px;">', unsafe_allow_html=True)
         
-        # Mostrar tarjeta de búsqueda en páginas específicas
-        if st.session_state.page in ["Dashboard", "Registrar ventas"]:
-            create_modern_search_card()
-        
-        # Diccionario de páginas
+        # En la función main(), actualiza el diccionario pages:
+
         pages = {
             "Dashboard": page_dashboard,
             "Ranking": page_ranking,
@@ -1105,10 +2469,10 @@ def main():
             "Usuarios": page_usuarios,
             "Reportes": page_reportes,
             "Backups": render_backup_page,
-            "Admin Afiliaciones": page_admin_afiliaciones,
+            "Admin Afiliaciones": page_admin_afiliaciones,  # Nueva página admin
             "Registrar ventas": page_registrar_ventas,
-            "Registrar afiliaciones": page_registrar_afiliaciones,
-            "Mis afiliaciones": page_mis_afiliaciones,
+            "Registrar afiliaciones": page_registrar_afiliaciones,  # Nueva página empleado
+            "Mis afiliaciones": page_mis_afiliaciones,  # Nueva página empleado
             "Mi desempeño": page_mi_desempeno,
             "Mi perfil": page_mi_perfil
         }
@@ -1120,8 +2484,8 @@ def main():
         
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Footer moderno
-        show_modern_footer()
+        # Footer
+        show_footer_selector("advanced")
 
 if __name__ == "__main__":
     main()
