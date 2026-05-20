@@ -6,9 +6,9 @@ from database import create_tables, get_connection, migrate_database, verify_dat
 from auth import authenticate, create_user, get_all_users
 import sqlite3
 import time
-# Al principio, con los otros import
 from keep_alive import init_keep_alive, render_keep_alive_status
 from backup_manager import render_backup_page
+from export_utils import barra_exportacion
 
 # Configuración de página
 st.set_page_config(
@@ -363,6 +363,7 @@ def page_registrar_afiliaciones():
     if not df_historial.empty:
         df_historial['Fecha'] = pd.to_datetime(df_historial['Fecha']).dt.strftime('%d/%m/%Y')
         st.dataframe(df_historial, use_container_width=True, hide_index=True)
+        barra_exportacion(df_historial, titulo='Historial de Ventas', nombre_archivo='historial_ventas', key_prefix='hist_ventas')
         
         # Opción para editar registros anteriores
         with st.expander("✏️ Editar registro de otro día"):
@@ -475,6 +476,7 @@ def page_mis_afiliaciones():
     df_display["fecha"] = df_display["fecha"].dt.strftime("%d/%m/%Y")
     df_display.columns = ["Fecha", "Cantidad"]
     st.dataframe(df_display, use_container_width=True, hide_index=True)
+    barra_exportacion(df_display, titulo='Registro de Ventas', nombre_archivo='ventas_registro', key_prefix='reg_ventas')
 
 def page_admin_afiliaciones():
     """Página para que el admin gestione las metas de afiliaciones"""
@@ -1822,6 +1824,8 @@ def page_dashboard():
             
             st.dataframe(tabla_empleados, use_container_width=True, hide_index=True)
             
+            # u2500u2500 Exportación Dashboard u2500u2500
+            barra_exportacion(empleado_resumen, titulo="Ventas por Empleado", subtitulo=f"{fecha_inicio} → {fecha_fin}", nombre_archivo="ventas_empleados", key_prefix="dash_emp")
             # Opción para ver resumen por departamento
             with st.expander("📊 Ver resumen por departamento"):
                 depto_resumen = df.groupby('department').agg({
