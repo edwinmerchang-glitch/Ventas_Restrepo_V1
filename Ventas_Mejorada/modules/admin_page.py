@@ -247,8 +247,8 @@ def page_reportes():
     ])
 
     col_f1, col_f2 = st.columns(2)
-    with col_f1: fi = st.date_input("Desde", value=date.today().replace(day=1))
-    with col_f2: ff = st.date_input("Hasta", value=date.today())
+    with col_f1: fi = st.date_input("Desde", value=date.today().replace(day=1), format="DD/MM/YYYY")
+    with col_f2: ff = st.date_input("Hasta", value=date.today(), format="DD/MM/YYYY")
 
     if st.button("🔄 Generar reporte"):
         st.cache_data.clear()

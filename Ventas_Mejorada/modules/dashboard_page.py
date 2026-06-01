@@ -22,9 +22,9 @@ def page_dashboard():
     # ── Filtros ──────────────────────────────────────────────────────
     col1, col2, col3 = st.columns(3)
     with col1:
-        fecha_inicio = st.date_input("Fecha inicio", value=date.today().replace(day=1))
+        fecha_inicio = st.date_input("Fecha inicio", value=date.today().replace(day=1), format="DD/MM/YYYY")
     with col2:
-        fecha_fin = st.date_input("Fecha fin", value=date.today())
+        fecha_fin = st.date_input("Fecha fin", value=date.today(), format="DD/MM/YYYY")
     with col3:
         depto_filtro = st.multiselect("Departamento", DEPARTAMENTOS, default=DEPARTAMENTOS)
 

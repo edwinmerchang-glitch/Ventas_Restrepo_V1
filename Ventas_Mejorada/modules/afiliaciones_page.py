@@ -32,7 +32,7 @@ def page_registrar_afiliaciones():
 
     col_f, _ = st.columns([2,2])
     with col_f:
-        fecha = st.date_input("📅 Fecha del registro", value=date.today(), max_value=date.today())
+        fecha = st.date_input("📅 Fecha del registro", value=date.today(), max_value=date.today(), format="DD/MM/YYYY")
 
     existe = execute_query(
         "SELECT id, cantidad FROM afiliaciones WHERE employee_id=? AND fecha=?",
@@ -190,8 +190,8 @@ def page_admin_afiliaciones():
 
     with tab3:
         c1, c2 = st.columns(2)
-        with c1: fi = st.date_input("Desde", value=date.today().replace(day=1), key="rep_fi")
-        with c2: ff = st.date_input("Hasta", value=date.today(), key="rep_ff")
+        with c1: fi = st.date_input("Desde", value=date.today().replace(day=1), key="rep_fi", format="DD/MM/YYYY")
+        with c2: ff = st.date_input("Hasta", value=date.today(), key="rep_ff", format="DD/MM/YYYY")
         df = safe_dataframe("""
             SELECT a.fecha, e.department, e.name empleado, a.cantidad
             FROM afiliaciones a JOIN employees e ON a.employee_id=e.id

@@ -1,5 +1,7 @@
 """Punto de entrada principal – Locatel AIS Sistema de Ventas."""
 import streamlit as st
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 from database import create_tables, migrate_database, verify_database
 from auth import authenticate, create_user
 from utils import execute_query, execute_insert, get_employee_info
@@ -17,6 +19,13 @@ from modules.afiliaciones_page   import (page_registrar_afiliaciones,
 from modules.admin_page          import (page_empleados, page_usuarios,
                                         page_reportes, page_auditoria)
 
+# Calendario en español
+try:
+    import locale
+    locale.setlocale(locale.LC_TIME, 'es_CO.UTF-8')
+except Exception:
+    pass
+
 # ── Configuración de página ───────────────────────────────────────────
 st.set_page_config(
     page_title="Ventas Equipo Locatel Restrepo",
@@ -30,8 +39,10 @@ st.set_page_config(
 
 # ── CSS ───────────────────────────────────────────────────────────────
 def _load_css():
+    import os
+    css_path = os.path.join(os.path.dirname(__file__), "styles.css")
     try:
-        with open("styles.css") as f:
+        with open(css_path) as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
         pass
