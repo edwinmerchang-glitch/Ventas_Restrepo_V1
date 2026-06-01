@@ -73,42 +73,29 @@ if "page" not in st.session_state:
 #  LOGIN
 # ══════════════════════════════════════════════════════════════════════
 def show_login():
-    st.markdown(
-        """
-        <div style="max-width:420px;margin:60px auto 0">
-          <div class="card" style="padding:2.5rem">
-            <div style="text-align:center;margin-bottom:1.5rem">
-              <span style="font-size:2.8rem">🏥</span>
-              <h2 style="margin:.5rem 0 .25rem">Locatel AIS</h2>
-              <p style="color:var(--text-muted);font-size:.85rem">Sistema de Gestión de Ventas</p>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("## 🏥 Locatel AIS")
+        st.caption("Sistema de Gestión de Ventas")
+        st.divider()
 
-    with st.form("login_form"):
-        username = st.text_input("👤 Usuario", placeholder="tu.usuario")
-        password = st.text_input("🔑 Contraseña", type="password")
-        submitted = st.form_submit_button("Iniciar sesión", use_container_width=True, type="primary")
+        with st.form("login_form"):
+            username  = st.text_input("👤 Usuario", placeholder="tu.usuario")
+            password  = st.text_input("🔑 Contraseña", type="password")
+            submitted = st.form_submit_button("Iniciar sesión", use_container_width=True, type="primary")
 
-        if submitted:
-            if not username or not password:
-                st.warning("⚠️ Ingresa usuario y contraseña.")
-            else:
-                user = authenticate(username, password)
-                if user:
-                    st.session_state.user = user
-                    # Verificar si debe cambiar contraseña
-                    res = execute_query("SELECT must_change_password FROM users WHERE id=?", (user["id"],))
-                    if res and res[0][0]:
-                        st.session_state.page = "Cambiar contraseña"
-                    else:
-                        st.session_state.page = "Dashboard" if user["role"] == "admin" else "Registrar ventas"
-                    st.rerun()
+            if submitted:
+                if not username or not password:
+                    st.warning("⚠️ Ingresa usuario y contraseña.")
                 else:
-                    st.error("❌ Credenciales incorrectas.")
-
-    st.markdown("</div></div>", unsafe_allow_html=True)
+                    user = authenticate(username, password)
+                    if user:
+                        st.session_state.user = user
+                        st.session_state.page = "Dashboard" if user["role"] == "admin" else "Registrar ventas"
+                        st.rerun()
+                    else:
+                        st.error("❌ Credenciales incorrectas.")
 
 
 # ══════════════════════════════════════════════════════════════════════
