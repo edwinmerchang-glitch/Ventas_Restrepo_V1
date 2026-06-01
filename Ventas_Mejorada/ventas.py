@@ -7,14 +7,14 @@ from keep_alive import init_keep_alive
 from backup_manager import render_backup_page
 
 # ── Importar páginas ──────────────────────────────────────────────────
-from pages.dashboard_page      import page_dashboard
-from pages.ranking_page        import page_ranking
-from pages.ventas_page         import page_registrar_ventas
-from pages.desempeno_page      import page_mi_desempeno, page_mi_perfil
-from pages.afiliaciones_page   import (page_registrar_afiliaciones,
+from modules.dashboard_page      import page_dashboard
+from modules.ranking_page        import page_ranking
+from modules.ventas_page         import page_registrar_ventas
+from modules.desempeno_page      import page_mi_desempeno, page_mi_perfil
+from modules.afiliaciones_page   import (page_registrar_afiliaciones,
                                         page_mis_afiliaciones,
                                         page_admin_afiliaciones)
-from pages.admin_page          import (page_empleados, page_usuarios,
+from modules.admin_page          import (page_empleados, page_usuarios,
                                         page_reportes, page_auditoria)
 
 # ── Configuración de página ───────────────────────────────────────────
