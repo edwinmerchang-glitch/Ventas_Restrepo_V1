@@ -19,7 +19,7 @@ from modules.admin_page          import (page_empleados, page_usuarios,
 
 # ── Configuración de página ───────────────────────────────────────────
 st.set_page_config(
-    page_title="Locatel AIS – Ventas",
+    page_title="Ventas Equipo Locatel Restrepo",
     layout="wide",
     page_icon="🏥",
     initial_sidebar_state="collapsed",
@@ -76,7 +76,7 @@ def show_login():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.markdown("## 🏥 Locatel AIS")
+        st.markdown("## 🏥 Ventas Equipo Locatel Restrepo")
         st.caption("Sistema de Gestión de Ventas")
         st.divider()
 
@@ -141,7 +141,7 @@ def show_menu():
             f"""
             <div style="text-align:center;padding:1rem 0 .5rem">
               <span style="font-size:2rem">🏥</span>
-              <h3 style="margin:.25rem 0 0;font-size:1rem">Locatel AIS</h3>
+              <h3 style="margin:.25rem 0 0;font-size:1rem">Locatel Restrepo</h3>
             </div>
             <div style="background:var(--surface-2);border-radius:var(--r-md);padding:.75rem 1rem;margin-bottom:1rem;border:1px solid var(--border)">
               <div style="font-weight:600;font-size:.9rem">{user['username']}</div>
