@@ -18,11 +18,21 @@ def page_ranking():
 
     col1, col2 = st.columns(2)
     with col1:
-        periodo = st.selectbox("Período", ["Este mes", "Esta semana", "Este trimestre", "Este año", "Todo"], key="rank_periodo")
+        periodo = st.selectbox("Período", ["Este mes", "Mes anterior", "Esta semana", "Este trimestre", "Este año", "Todo"], key="rank_periodo")
     with col2:
         depto = st.selectbox("Departamento", ["Todos"] + DEPARTAMENTOS, key="rank_depto")
 
-    fecha_inicio = periodo_a_fecha(periodo)
+    if periodo == "Mes anterior":
+        from datetime import date
+        from dateutil.relativedelta import relativedelta
+        hoy = date.today()
+        primer_dia_mes_ant = hoy.replace(day=1) - relativedelta(months=1)
+        ultimo_dia_mes_ant = hoy.replace(day=1) - relativedelta(days=1)
+        fecha_inicio = primer_dia_mes_ant
+        fecha_fin_custom = ultimo_dia_mes_ant
+    else:
+        fecha_inicio = periodo_a_fecha(periodo)
+        fecha_fin_custom = None
 
     query = """
         SELECT e.name, e.department, e.position, e.goal,
@@ -33,9 +43,10 @@ def page_ranking():
                COALESCE(SUM(s.adicional),0) as adicional,
                COUNT(DISTINCT s.date) as dias_activos
         FROM employees e
-        LEFT JOIN sales s ON e.id = s.employee_id AND s.date >= ?
+        LEFT JOIN sales s ON e.id = s.employee_id AND s.date >= ? AND s.date <= ?
     """
-    params = [fecha_inicio]
+    fecha_fin = fecha_fin_custom if fecha_fin_custom else date.today()
+    params = [fecha_inicio, fecha_fin]
     if depto != "Todos":
         query += " WHERE e.department = ?"
         params.append(depto)
